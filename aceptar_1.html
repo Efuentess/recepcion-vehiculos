@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Aceptación de orden de recepción</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#f1eeed;--surface:#fff;--ink:#221c1c;--muted:#6a5f5f;--line:#ddd4d3;--soft:#f7f5f4;--accent:#82242a;--ok:#2f7d4f;--danger:#b23a2c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,-apple-system,sans-serif}
+header{background:#231b1b;color:#f4efe9;border-bottom:4px solid var(--accent);padding:16px}
+header .in{max-width:640px;margin:0 auto;display:flex;gap:12px;align-items:center}
+header img{height:54px;background:#fff;border-radius:6px;padding:3px}
+header b{display:block;font:700 22px "Barlow Condensed",Arial Narrow,sans-serif;text-transform:uppercase;letter-spacing:.02em}
+header span{font-size:13px;opacity:.75}
+main{max-width:640px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+h1{font:700 24px "Barlow Condensed",Arial Narrow,sans-serif;text-transform:uppercase;margin:0 0 4px}
+h2{font:700 16px "Barlow Condensed",Arial Narrow,sans-serif;text-transform:uppercase;color:var(--accent);margin:0 0 8px;letter-spacing:.04em}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0}
+dt{color:var(--muted);font-size:13px}dd{margin:0;font-weight:500}
+ul{margin:0;padding-left:18px}li{margin:2px 0}
+.plate{font:600 18px ui-monospace,Menlo,monospace;background:#231b1b;color:#f4efe9;padding:1px 9px;border-radius:5px}
+.muted{color:var(--muted);font-size:13px}
+label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:var(--muted)}
+input[type=text]{font:16px inherit;padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
+.chk{flex-direction:row;align-items:flex-start;gap:10px;color:var(--ink);font-weight:500;font-size:14px}
+.chk input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin-top:2px}
+button{font:600 17px inherit;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:14px;cursor:pointer;width:100%}
+button:disabled{opacity:.5}
+.ok{background:#e9f5ee;border-color:var(--ok);color:var(--ok);font-weight:600;text-align:center}
+.err{color:var(--danger)}
+</style></head>
+<body>
+<header><div class="in"><img id="logo" alt="" hidden><div><b id="taller">Orden de recepción</b><span id="tallerSub"></span></div></div></header>
+<main id="main"><div class="card muted" id="estado">Cargando la orden…</div></main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const ahora=()=>{const d=new Date();return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`};
+const t=(location.hash||"").replace("#","").trim();
+const estado=m=>{$("#estado").innerHTML=m};
+if(!window.firebase||!window.FIREBASE_CONFIG){estado('<span class="err">No se pudo cargar la página. Revisa tu conexión e intenta de nuevo.</span>');return}
+if(!t){estado('<span class="err">El enlace está incompleto. Pide al taller que te lo envíe de nuevo.</span>');return}
+firebase.initializeApp(window.FIREBASE_CONFIG);
+const fs=firebase.firestore();try{fs.settings({experimentalForceLongPolling:true,merge:true})}catch(e){}
+const ref=fs.doc("aprobaciones/"+t);
+ref.get().then(s=>{
+  if(!s.exists){estado('<span class="err">Este enlace no es válido o ya no existe. Comunícate con el taller.</span>');return}
+  const a=s.data(),tl=a.taller||{};
+  $("#taller").textContent=tl.nombre||"Orden de recepción";$("#tallerSub").textContent=[tl.tel,tl.dir].filter(Boolean).join(" · ");
+  if(tl.logo){$("#logo").src=tl.logo;$("#logo").hidden=false}
+  const lista=(arr,vacio)=>arr&&arr.length?`<ul>${arr.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:`<span class="muted">${vacio}</span>`;
+  $("#main").innerHTML=`
+  <div class="card"><h1>Orden ${esc(a.numero)}</h1><p class="muted" style="margin:0">Hola ${esc(a.cliente)}, revisa los datos con que recibimos tu vehículo y confirma al final.</p></div>
+  <div class="card"><h2>Vehículo</h2><dl>
+    <dt>Placa</dt><dd><span class="plate">${esc(a.placa)}</span></dd>
+    <dt>Vehículo</dt><dd>${esc(a.vehiculo)}</dd>
+    <dt>Ingreso</dt><dd>${esc(a.ingreso)}</dd>
+    <dt>Kilometraje</dt><dd>${a.km!=null?Number(a.km).toLocaleString("es-SV")+" km":"—"}</dd>
+    <dt>Combustible</dt><dd>${esc(a.combustible)}</dd></dl></div>
+  <div class="card"><h2>Trabajo solicitado</h2><p style="margin:0">${esc(a.motivo)}</p>${a.testigos?`<p class="muted">Testigos encendidos: ${esc(a.testigos)}</p>`:""}</div>
+  <div class="card"><h2>Inventario recibido</h2>${lista(a.inventario,"Ninguno marcado")}${a.faltantes&&a.faltantes.length?`<p class="muted">No venía: ${esc(a.faltantes.join(", "))}</p>`:""}${a.objetos?`<p class="muted">Objetos de valor declarados: ${esc(a.objetos)}</p>`:""}</div>
+  <div class="card"><h2>Estado exterior</h2>${lista(a.danos,"Sin daños marcados al ingreso")}${a.observaciones?`<p class="muted">${esc(a.observaciones)}</p>`:""}</div>
+  ${a.condiciones&&a.condiciones.length?`<div class="card"><h2>Condiciones del taller</h2><ol style="margin:0;padding-left:18px;font-size:14px">${a.condiciones.map(x=>`<li>${esc(x)}</li>`).join("")}</ol></div>`:""}
+  <div class="card" id="acc"></div>`;
+  if(a.aceptado){$("#acc").className="card ok";$("#acc").textContent=`Orden aceptada por ${a.aceptadoPor||a.cliente} el ${a.aceptadoEnTxt||""}. ¡Gracias!`;return}
+  $("#acc").innerHTML=`<h2>Confirmación</h2>
+    <label>Tu nombre<input type="text" id="nombre" value="${esc(a.cliente)}" autocomplete="name"></label>
+    <label class="chk" style="margin:12px 0"><input type="checkbox" id="ok">Acepto el inventario, el estado del vehículo descrito y las condiciones del taller.</label>
+    <button id="btn" disabled>Acepto la orden</button><p class="err" id="msg"></p>`;
+  $("#ok").onchange=()=>$("#btn").disabled=!$("#ok").checked;
+  $("#btn").onclick=async()=>{
+    const n=$("#nombre").value.trim();if(!n){$("#msg").textContent="Escribe tu nombre.";return}
+    $("#btn").disabled=true;$("#msg").textContent="";
+    const tx=ahora();
+    try{await ref.update({aceptado:true,aceptadoPor:n,aceptadoEn:new Date().toISOString(),aceptadoEnTxt:tx});
+      $("#acc").className="card ok";$("#acc").textContent=`Listo, ${n}. Aceptaste la orden ${a.numero} el ${tx}. ¡Gracias por confiar en nosotros!`}
+    catch(e){$("#msg").textContent="No se pudo registrar. Intenta de nuevo o comunícate con el taller.";$("#btn").disabled=false}
+  };
+}).catch(()=>estado('<span class="err">No se pudo cargar la orden. Revisa tu conexión e intenta de nuevo.</span>'));
+})();
+</script>
+</body></html>
