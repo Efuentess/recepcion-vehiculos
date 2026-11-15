@@ -115,6 +115,11 @@ tr:last-child td{border-bottom:0}
 .login h2{color:var(--accent)}
 .userbox{display:flex;gap:8px;align-items:center;font-size:12px;opacity:.85;padding-bottom:12px}
 .userbox button{font:600 12px var(--f-body);background:none;border:1px solid rgba(255,255,255,.35);color:var(--bar-ink);border-radius:6px;padding:4px 8px;cursor:pointer}
+.brand-row{display:flex;align-items:center;gap:12px}
+.brand-row img{height:46px;width:auto;border-radius:6px;background:#fff;padding:3px}
+.logoprev{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logoprev img{max-height:80px;max-width:180px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px}
+.vehform{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px}
 .sticky-save{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);margin:0 -18px -18px;padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));border-radius:0 0 10px 10px}
 </style></head>
 <body>
@@ -129,11 +134,12 @@ tr:last-child td{border-bottom:0}
   </form>
 </div>
 <header class="top"><div class="wrap">
-  <div class="brand"><span id="tallerTop">Automotriz Salvador Morales</span><h1>Recepción de Vehículos</h1></div>
+  <div class="brand-row" style="padding-bottom:12px"><img id="logoTop" alt="" hidden><div class="brand" style="padding-bottom:0"><span id="tallerTop">Automotriz Salvador Morales</span><h1>Recepción de Vehículos</h1></div></div>
   <div class="userbox" id="userbox" hidden><span id="userMail"></span><button type="button" id="btnSalir">Salir</button></div>
   <nav role="tablist" aria-label="Secciones">
     <button role="tab" data-tab="recibir" aria-selected="true">Recibir</button>
     <button role="tab" data-tab="taller" aria-selected="false">En taller<span class="count" id="cntTaller"></span></button>
+    <button role="tab" data-tab="vehiculos" aria-selected="false">Vehículos</button>
     <button role="tab" data-tab="historial" aria-selected="false">Historial</button>
     <button role="tab" data-tab="ajustes" aria-selected="false">Ajustes</button>
   </nav>
@@ -155,7 +161,7 @@ tr:last-child td{border-bottom:0}
 
     <h3>Vehículo</h3>
     <div class="grid">
-      <label>Placa<input id="vPlaca" placeholder="P123456" autocomplete="off" autocapitalize="characters"></label>
+      <label>Placa<input id="vPlaca" placeholder="Escribe o elige la placa" autocomplete="off" autocapitalize="characters" list="dlPlacas"></label>
       <label>Marca<input id="vMarca" placeholder="Toyota" list="dlMarcas" autocomplete="off"></label>
       <label>Modelo<input id="vModelo" placeholder="Corolla" autocomplete="off"></label>
       <label>Año<input id="vAnio" type="number" inputmode="numeric" min="1950" max="2100" placeholder="2018"></label>
@@ -221,7 +227,7 @@ tr:last-child td{border-bottom:0}
       <span class="msg" id="formMsg" role="status"></span>
     </div>
     <datalist id="dlMarcas"><option>Toyota</option><option>Nissan</option><option>Hyundai</option><option>Kia</option><option>Mazda</option><option>Honda</option><option>Mitsubishi</option><option>Chevrolet</option><option>Ford</option><option>Suzuki</option><option>Isuzu</option><option>Volkswagen</option></datalist>
-    <datalist id="dlRecibe"></datalist><datalist id="dlClientes"></datalist>
+    <datalist id="dlPlacas"></datalist><datalist id="dlRecibe"></datalist><datalist id="dlClientes"></datalist>
   </section>
 
   <!-- EN TALLER -->
@@ -236,6 +242,32 @@ tr:last-child td{border-bottom:0}
     </div>
     <div class="cards" id="cards"></div>
     <span class="msg" id="tallerMsg" role="status"></span>
+  </section>
+
+  <!-- VEHICULOS -->
+  <section data-view="vehiculos" class="panel" hidden>
+    <div class="head"><h2>Vehículos de clientes</h2><span class="pill" id="vehPill">0 vehículos</span></div>
+    <p class="status">Cada vehículo que se recibe queda guardado aquí con su dueño. En Recibir, al escribir o elegir la placa, se llenan solos los datos. También puedes agregar vehículos antes de que lleguen.</p>
+    <div class="vehform">
+      <h3 id="vfTitle">Agregar vehículo</h3>
+      <div class="grid">
+        <label>Placa<input id="vfPlaca" placeholder="P123456" autocomplete="off" autocapitalize="characters"></label>
+        <label>Marca<input id="vfMarca" list="dlMarcas" autocomplete="off"></label>
+        <label>Modelo<input id="vfModelo" autocomplete="off"></label>
+        <label>Año<input id="vfAnio" type="number" inputmode="numeric"></label>
+        <label>Color<input id="vfColor" autocomplete="off"></label>
+        <label>VIN / chasis<input id="vfVin" autocomplete="off"></label>
+        <label class="span2">Dueño (nombre o empresa)<input id="vfNombre" autocomplete="off" list="dlClientes"></label>
+        <label>Teléfono<input id="vfTel" type="tel" inputmode="tel" autocomplete="off"></label>
+        <label>Correo<input id="vfCorreo" type="email" autocomplete="off"></label>
+        <label>DUI / NIT<input id="vfDoc" autocomplete="off"></label>
+      </div>
+      <div class="actions"><button class="btn primary" type="button" id="btnVehGuardar">Guardar vehículo</button><button class="btn" type="button" id="btnVehLimpiar" hidden>Cancelar edición</button><span class="msg" id="vehMsg" role="status"></span></div>
+    </div>
+    <input id="qVeh" placeholder="Buscar placa, dueño o marca" autocomplete="off" style="max-width:340px">
+    <div class="tablebox"><table>
+      <thead><tr><th>Placa</th><th>Vehículo</th><th>Dueño</th><th>Teléfono</th><th>Visitas</th><th>Última visita</th><th>Último km</th><th></th></tr></thead>
+      <tbody id="tbVeh"></tbody></table></div>
   </section>
 
   <!-- HISTORIAL -->
@@ -264,6 +296,10 @@ tr:last-child td{border-bottom:0}
       <label>Correo<input id="aCorreo"></label>
       <label>NRC<input id="aNrc"></label>
       <label class="spanAll">Dirección<input id="aDir"></label>
+      <div class="spanAll logoprev"><img id="logoPrev" alt="Logo del taller" hidden>
+        <label class="btn" style="flex-direction:row;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)">Subir logo<input type="file" accept="image/*" id="logoIn" hidden></label>
+        <button class="btn small danger" type="button" id="logoQuitar" hidden>Quitar logo</button>
+        <span class="hint">Sale en el encabezado del PDF y de la app. Usa una imagen nítida, ojalá PNG.</span></div>
       <label class="spanAll">Condiciones del taller (una por línea, salen en el PDF)<textarea id="aCond" style="min-height:150px"></textarea></label>
     </div>
     <div class="actions"><button class="btn primary" id="btnAjustes" type="button">Guardar datos del taller</button><span class="msg" id="ajMsg" role="status"></span></div>
@@ -292,7 +328,7 @@ const DEF_TALLER={nombre:"AUTOMOTRIZ SALVADOR MORALES",tel:"+503 6169-3188",corr
     "El vehículo se entrega únicamente al cliente o a la persona que este autorice, presentando esta orden.",
     "El cliente autoriza las pruebas de manejo necesarias para el diagnóstico y la verificación del trabajo."].join("\n")};
 
-const state={ordenes:[],taller:{...DEF_TALLER},db:null,user:null,dl:null,assets:null,editId:null,fotoCache:{},unsub:[],
+const state={ordenes:[],taller:{...DEF_TALLER},db:null,user:null,dl:null,assets:null,editId:null,fotoCache:{},unsub:[],vehiculos:[],logoTmp:undefined,
   comb:2,danoTipo:"R",danos:[],fotos:[],firma:null,sigDirty:false,confirmDel:null,entregaId:null};
 
 const pad=n=>String(n).padStart(2,"0");
@@ -422,18 +458,73 @@ function firmaExport(){
   x.fillStyle="#fff";x.fillRect(0,0,600,200);x.drawImage(sig,0,0,600,200);return c.toDataURL("image/jpeg",.8);
 }
 
-/* ---------- Autocompletar por placa ---------- */
-$("#vPlaca").addEventListener("blur",()=>{
-  const p=normPlaca($("#vPlaca").value);$("#vPlaca").value=p;if(!p||state.editId){msg($("#placaMsg"),"");return}
-  const prev=state.ordenes.filter(o=>normPlaca(o.vehiculo?.placa)===p).sort((a,b)=>(b.ingreso||"").localeCompare(a.ingreso||""));
-  if(!prev.length){msg($("#placaMsg"),"Vehículo nuevo en el taller.");return}
-  const o=prev[0],v=o.vehiculo||{},c=o.cliente||{};
-  const set=(id,val)=>{if(!$(id).value&&val!=null)$(id).value=val};
-  set("#vMarca",v.marca);set("#vModelo",v.modelo);set("#vAnio",v.anio);set("#vColor",v.color);set("#vVin",v.vin);
+/* ---------- Catálogo de vehículos ---------- */
+function catalogo(){
+  const map=new Map();
+  state.ordenes.slice().sort((a,b)=>(a.ingreso||"").localeCompare(b.ingreso||"")).forEach(o=>{
+    const p=normPlaca(o.vehiculo?.placa);if(!p)return;const prev=map.get(p)||{visitas:0};const v=o.vehiculo||{};
+    map.set(p,{...prev,placa:p,marca:v.marca||prev.marca,modelo:v.modelo||prev.modelo,anio:v.anio||prev.anio,color:v.color||prev.color,vin:v.vin||prev.vin,
+      cliente:{...(prev.cliente||{}),...Object.fromEntries(Object.entries(o.cliente||{}).filter(([k,x])=>x&&k!=="entrega"))},
+      visitas:prev.visitas+1,ultima:o.ingreso,ultimoKm:v.km??prev.ultimoKm});
+  });
+  state.vehiculos.forEach(d=>{const p=normPlaca(d.placa||d.id);if(!p)return;const prev=map.get(p)||{visitas:0};
+    map.set(p,{...prev,...Object.fromEntries(Object.entries(d).filter(([k,x])=>x!==""&&x!=null&&k!=="cliente")),placa:p,docId:d.id,
+      cliente:{...(prev.cliente||{}),...Object.fromEntries(Object.entries(d.cliente||{}).filter(([k,x])=>x))}})});
+  return map;
+}
+function llenarDesdePlaca(forzar){
+  const p=normPlaca($("#vPlaca").value);if(!p||state.editId){msg($("#placaMsg"),"");return}
+  const veh=catalogo().get(p);
+  if(!veh){if(forzar)msg($("#placaMsg"),"Vehículo nuevo: se guardará en la lista de vehículos al guardar la orden.");return}
+  $("#vPlaca").value=p;const c=veh.cliente||{};
+  const set=(id,val)=>{if(val!=null&&val!==""&&(forzar||!$(id).value))$(id).value=val};
+  set("#vMarca",veh.marca);set("#vModelo",veh.modelo);set("#vAnio",veh.anio);set("#vColor",veh.color);set("#vVin",veh.vin);
   set("#cNombre",c.nombre);set("#cTel",c.tel);set("#cCorreo",c.correo);set("#cDoc",c.doc);
-  const activa=prev.find(x=>x.estado!=="Entregado");
+  const activa=state.ordenes.find(x=>normPlaca(x.vehiculo?.placa)===p&&x.estado!=="Entregado");
   msg($("#placaMsg"),activa?`Ojo: esta placa ya tiene la orden ${numTxt(activa.numero)} abierta (${activa.estado}).`
-    :`Cliente conocido: ${prev.length} visita${prev.length>1?"s":""}, la última el ${fFecha(o.ingreso)} con ${km(v.km)||"—"} km. Datos cargados.`,activa?"err":"ok");
+    :`${c.nombre||"Cliente"} · ${veh.visitas?`${veh.visitas} visita${veh.visitas>1?"s":""}, la última el ${fFecha(veh.ultima)}${veh.ultimoKm!=null?` con ${km(veh.ultimoKm)} km`:""}`:"registrado, primera visita"}. Datos cargados.`,activa?"err":"ok");
+}
+$("#vPlaca").addEventListener("input",()=>{if(catalogo().has(normPlaca($("#vPlaca").value)))llenarDesdePlaca(true)});
+$("#vPlaca").addEventListener("blur",()=>{const p=normPlaca($("#vPlaca").value);$("#vPlaca").value=p;llenarDesdePlaca(false);if(p&&!catalogo().has(p)&&!state.editId)msg($("#placaMsg"),"Vehículo nuevo: se guardará en la lista de vehículos al guardar la orden.")});
+async function guardarVehiculo(d){
+  const p=d.placa;if(!p)return;
+  const lleno=o=>Object.fromEntries(Object.entries(o).filter(([k,x])=>x!=null&&String(x).trim()!==""));
+  const data={placa:p,...lleno({marca:d.marca,modelo:d.modelo,anio:d.anio,color:d.color,vin:d.vin}),
+    cliente:lleno({nombre:d.cliente?.nombre,tel:d.cliente?.tel,correo:d.cliente?.correo,doc:d.cliente?.doc}),actualizado:new Date().toISOString()};
+  if(d.km!=null)data.ultimoKm=d.km;
+  await state.db.doc("vehiculos/"+p).set(data,{merge:true});
+}
+
+/* ---------- Pestaña Vehículos ---------- */
+const VF={placa:"#vfPlaca",marca:"#vfMarca",modelo:"#vfModelo",anio:"#vfAnio",color:"#vfColor",vin:"#vfVin"},VC={nombre:"#vfNombre",tel:"#vfTel",correo:"#vfCorreo",doc:"#vfDoc"};
+function limpiarVeh(){Object.values(VF).concat(Object.values(VC)).forEach(s=>$(s).value="");$("#vfPlaca").disabled=false;$("#vfTitle").textContent="Agregar vehículo";$("#btnVehLimpiar").hidden=true}
+$("#btnVehLimpiar").onclick=()=>{limpiarVeh();msg($("#vehMsg"),"")};
+$("#btnVehGuardar").onclick=async()=>{
+  const m=$("#vehMsg");if(!state.db)return msg(m,"Sin conexión.","err");
+  const placa=normPlaca($("#vfPlaca").value);if(!placa)return msg(m,"Escribe la placa.","err");
+  if(!$("#vfNombre").value.trim())return msg(m,"Escribe el nombre del dueño.","err");
+  const d={placa,cliente:{}};Object.entries(VF).forEach(([k,s])=>{if(k!=="placa")d[k]=$(s).value.trim()});Object.entries(VC).forEach(([k,s])=>d.cliente[k]=$(s).value.trim());
+  try{await guardarVehiculo(d);msg(m,`Vehículo ${placa} guardado.`,"ok");limpiarVeh()}catch(e){msg(m,"No se pudo guardar: "+(e.message||e),"err")}
+};
+function renderVeh(){
+  const cat=[...catalogo().values()].sort((a,b)=>(b.ultima||b.actualizado||"").localeCompare(a.ultima||a.actualizado||""));
+  $("#vehPill").textContent=cat.length+(cat.length===1?" vehículo":" vehículos");
+  $("#dlPlacas").innerHTML=cat.map(v=>`<option value="${esc(v.placa)}">${esc([v.marca,v.modelo].filter(Boolean).join(" "))} · ${esc(v.cliente?.nombre||"")}</option>`).join("");
+  const q=$("#qVeh").value.trim().toUpperCase();
+  const vis=cat.filter(v=>!q||[v.placa,v.marca,v.modelo,v.cliente?.nombre].join(" ").toUpperCase().includes(q)||v.placa.includes(normPlaca(q)));
+  $("#tbVeh").innerHTML=vis.length?vis.map(v=>`<tr><td class="num"><b>${esc(v.placa)}</b></td><td>${esc([v.marca,v.modelo,v.anio].filter(Boolean).join(" "))}${v.color?`<div class="status">${esc(v.color)}</div>`:""}</td>
+    <td>${esc(v.cliente?.nombre||"")}</td><td class="num">${esc(v.cliente?.tel||"")}</td><td class="num">${v.visitas||0}</td><td class="num">${v.ultima?fFecha(v.ultima):"—"}</td><td class="num">${v.ultimoKm!=null?km(v.ultimoKm):"—"}</td>
+    <td style="white-space:nowrap"><button class="btn small primary" data-vrec="${esc(v.placa)}">Recibir</button> <button class="btn small" data-vedit="${esc(v.placa)}">Editar</button> <button class="btn small" data-vhist="${esc(v.placa)}">Historial</button></td></tr>`).join("")
+    :`<tr><td colspan="8" class="empty">${cat.length?"Ningún vehículo coincide.":"Todavía no hay vehículos. Se agregan solos al recibir, o agrégalos arriba."}</td></tr>`;
+}
+$("#qVeh").addEventListener("input",renderVeh);
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;const d=b.dataset;
+  if(d.vrec){limpiarForm();showTab("recibir");window.scrollTo(0,0);$("#vPlaca").value=d.vrec;llenarDesdePlaca(true);$("#vKm").focus()}
+  if(d.vedit){const v=catalogo().get(d.vedit);if(!v)return;
+    Object.entries(VF).forEach(([k,s])=>$(s).value=v[k]??"");Object.entries(VC).forEach(([k,s])=>$(s).value=v.cliente?.[k]??"");
+    $("#vfPlaca").disabled=true;$("#vfTitle").textContent="Editar vehículo "+v.placa;$("#btnVehLimpiar").hidden=false;$("#vfNombre").focus();window.scrollTo(0,0)}
+  if(d.vhist){$("#qTexto").value=d.vhist;$("#qDesde").value="";$("#qHasta").value="";$("#qEstado").value="";renderHist();showTab("historial")}
 });
 
 /* ---------- Formulario ---------- */
@@ -489,6 +580,7 @@ async function guardar(conPdf){
       const ref=await state.db.collection("ordenes").add(orden);orden.id=ref&&ref.id;
       msg(m,`Orden ${numTxt(numero)} guardada: ${d.vehiculo.placa}.`,"ok");
     }
+    try{await guardarVehiculo({...d.vehiculo,cliente:d.cliente})}catch(e){}
     try{localStorage.setItem("rv_recibe",d.recibidoPor)}catch(e){}
     limpiarForm();
     if(conPdf)await pdfOrden(orden,m);
@@ -581,11 +673,25 @@ document.addEventListener("click",async e=>{
 /* ---------- Ajustes ---------- */
 function renderAjustes(){const t=state.taller;
   [["#aNombre","nombre"],["#aTel","tel"],["#aCorreo","correo"],["#aNrc","nrc"],["#aDir","dir"],["#aCond","cond"]].forEach(([s,k])=>{if(document.activeElement!==$(s))$(s).value=t[k]||""});
-  $("#tallerTop").textContent=t.nombre||"Mi taller";}
+  $("#tallerTop").textContent=t.nombre||"Mi taller";
+  const logo=state.logoTmp!==undefined?state.logoTmp:t.logo;
+  $("#logoPrev").hidden=!logo;if(logo)$("#logoPrev").src=logo;$("#logoQuitar").hidden=!logo;
+  $("#logoTop").hidden=!t.logo;if(t.logo)$("#logoTop").src=t.logo;}
+$("#logoIn").onchange=async()=>{
+  const f=$("#logoIn").files[0];if(!f)return;const m=$("#ajMsg");
+  try{const bmp=await createImageBitmap(f);const s=Math.min(1,600/Math.max(bmp.width,bmp.height));
+    const c=document.createElement("canvas");c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+    let url=c.toDataURL("image/png");if(url.length>700000)url=c.toDataURL("image/jpeg",.85);
+    state.logoTmp=url;state.logoW=c.width;state.logoH=c.height;renderAjustes();msg(m,"Logo listo. Toca Guardar datos del taller para que quede.","ok")}
+  catch(e){msg(m,"No se pudo leer la imagen: "+(e.message||e),"err")}
+  $("#logoIn").value="";
+};
+$("#logoQuitar").onclick=()=>{state.logoTmp=null;state.logoW=state.logoH=null;renderAjustes();msg($("#ajMsg"),"Logo quitado. Toca Guardar datos del taller para confirmar.","ok")};
 $("#btnAjustes").onclick=async()=>{
   const m=$("#ajMsg");if(!state.db)return msg(m,"Sin conexión.","err");
   const t={nombre:$("#aNombre").value.trim(),tel:$("#aTel").value.trim(),correo:$("#aCorreo").value.trim(),nrc:$("#aNrc").value.trim(),dir:$("#aDir").value.trim(),cond:$("#aCond").value.trim()};
-  try{await state.db.doc("config/taller").set(t);msg(m,"Datos del taller guardados.","ok")}catch(e){msg(m,"No se pudo guardar: "+(e.message||e),"err")}
+  if(state.logoTmp!==undefined){t.logo=state.logoTmp||"";t.logoW=state.logoW||0;t.logoH=state.logoH||0}else{t.logo=state.taller.logo||"";t.logoW=state.taller.logoW||0;t.logoH=state.taller.logoH||0}
+  try{await state.db.doc("config/taller").set(t);state.logoTmp=undefined;msg(m,"Datos del taller guardados.","ok")}catch(e){msg(m,"No se pudo guardar: "+(e.message||e),"err")}
 };
 
 /* ---------- Exportar ---------- */
@@ -628,12 +734,17 @@ async function pdfOrden(o,m){
   const RED=[130,36,42],BG=[245,244,243],LN=[217,210,210],TX=[40,34,34],t=state.taller,v=o.vehiculo||{},c=o.cliente||{};
   let y=14;
   const ensure=h=>{if(y+h>H-16){doc.addPage();y=16}};
-  const band=txt=>{ensure(12);doc.setFillColor(...RED);doc.rect(L,y,CW,6.5,"F");doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.text(txt,L+2.5,y+4.5);doc.setTextColor(...TX);y+=8.5};
+  const band=txt=>{ensure(12);doc.setFillColor(...RED);doc.rect(L,y,CW,6.5,"F");doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.text(txt,L+2.5,y+4.5);doc.setTextColor(...TX);doc.setFont("helvetica","normal");y+=8};
   // Encabezado
-  doc.setTextColor(...RED);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text(t.nombre||"",L,y+4);
+  let TXL=L;
+  if(t.logo){try{const ratio=t.logoW&&t.logoH?t.logoW/t.logoH:1;let lh=22,lw=lh*ratio;if(lw>34){lw=34;lh=lw/ratio}
+    const fmt=t.logo.startsWith("data:image/png")?"PNG":"JPEG";
+    doc.addImage(t.logo,fmt,L,y-3+(22-lh)/2,lw,lh);TXL=L+lw+4;
+    doc.setDrawColor(...RED);doc.setLineWidth(.5);doc.line(TXL-2,y-2,TXL-2,y+19)}catch(e){TXL=L}}
+  doc.setTextColor(...RED);doc.setFont("helvetica","bold");doc.setFontSize(TXL>L?14:16);doc.text(t.nombre||"",TXL,y+4);
   doc.setTextColor(...TX);doc.setFont("helvetica","normal");doc.setFontSize(7.6);
-  const dirL=doc.splitTextToSize(t.dir||"",CW-62);doc.text(dirL,L,y+9.5);let hy=y+9.5+dirL.length*3.3;
-  doc.text([`Tel: ${t.tel||""}   |   ${t.correo||""}`,t.nrc?`NRC: ${t.nrc}`:""].filter(Boolean),L,hy);
+  const dirL=doc.splitTextToSize(t.dir||"",R-62-TXL);doc.text(dirL,TXL,y+9.5);let hy=y+9.5+dirL.length*3.3;
+  doc.text([`Tel: ${t.tel||""}   |   ${t.correo||""}`,t.nrc?`NRC: ${t.nrc}`:""].filter(Boolean),TXL,hy);
   doc.setDrawColor(...RED);doc.setLineWidth(.6);doc.roundedRect(R-56,y-2,56,24,2,2);
   doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(...RED);doc.text("ORDEN DE RECEPCIÓN",R-28,y+4,{align:"center"});
   doc.setFontSize(15);doc.setTextColor(...TX);doc.text(numTxt(o.numero),R-28,y+12,{align:"center"});
@@ -648,10 +759,10 @@ async function pdfOrden(o,m){
       [...kv("Correo",c.correo),...kv("Color",v.color)],[...kv("DUI / NIT",c.doc),...kv("VIN / chasis",v.vin)],
       [...kv("Entrega el vehículo",c.entrega||c.nombre),...kv("Kilometraje",v.km!=null?km(v.km)+" km":"")],
       [...kv("Entrega prometida",fFecha(o.prometida)),...kv("Combustible",COMB[o.combustible??2])]]});
-  y=doc.lastAutoTable.finalY+4;
+  y=doc.lastAutoTable.finalY+3;
   // Trabajo
   band("TRABAJO SOLICITADO / FALLA REPORTADA");
-  doc.setFontSize(8.6);const mot=doc.splitTextToSize(o.motivo||"—",CW-2);ensure(mot.length*3.8+2);doc.text(mot,L+1,y+2.5);y+=mot.length*3.8+1.5;
+  doc.setFontSize(8.6);const mot=doc.splitTextToSize(o.motivo||"—",CW-2);ensure(mot.length*3.8+2);doc.setFont("helvetica","normal");doc.text(mot,L+1,y+2.5);y+=mot.length*3.8+1.5;
   doc.setFontSize(8);
   if(o.testigos){const tl=doc.splitTextToSize("Testigos encendidos en tablero: "+o.testigos,CW-2);doc.text(tl,L+1,y+2.5);y+=tl.length*3.6}
   y+=3;
@@ -668,7 +779,7 @@ async function pdfOrden(o,m){
   y+=2;
   // Estado exterior
   band("ESTADO EXTERIOR");
-  const img=await svgToPng(o.danos||[]);const iw=98,ih=iw*330/600;ensure(ih+2);
+  const img=await svgToPng(o.danos||[]);const iw=84,ih=iw*330/600;ensure(ih+2);
   if(img)doc.addImage(img,"PNG",L,y,iw,ih);
   let ly=y+3;const lx=L+iw+5;doc.setFontSize(7.6);
   doc.setFont("helvetica","bold");doc.text("Simbología: "+Object.entries(DANOS).map(([k,v])=>`${k} = ${v}`).join(" · "),lx,ly,{maxWidth:R-lx});ly+=8;
@@ -677,18 +788,18 @@ async function pdfOrden(o,m){
   if(!dn.length){doc.text("Sin daños marcados al ingreso.",lx,ly)}
   dn.forEach((d,i)=>{if(ly>y+ih)return;const tl=doc.splitTextToSize(`${i+1}${d.t}. ${DANOS[d.t]}${d.n?" — "+d.n:""}`,R-lx);doc.text(tl,lx,ly);ly+=tl.length*3.4+.6});
   if(dn.length&&ly>y+ih){doc.text("…ver diagrama",lx,y+ih)}
-  y+=ih+3;
+  y+=ih+2;
   if(o.observaciones){doc.setFontSize(8);doc.setFont("helvetica","bold");doc.text("Observaciones:",L+1,y+2.5);doc.setFont("helvetica","normal");
     const ob=doc.splitTextToSize(o.observaciones,CW-2);ensure(ob.length*3.6+6);doc.text(ob,L+1,y+6.2);y+=ob.length*3.6+6}
   y+=2;
   // Condiciones
   const conds=(t.cond||"").split("\n").map(s=>s.trim()).filter(Boolean);
   if(conds.length){band("CONDICIONES");doc.setFontSize(7.2);doc.setTextColor(90,80,80);
-    conds.forEach((s,i)=>{const tl=doc.splitTextToSize(`${i+1}. ${s}`,CW-2);ensure(tl.length*3.1+1);doc.text(tl,L+1,y+2);y+=tl.length*3.1+.6});doc.setTextColor(...TX);y+=2}
+    conds.forEach((s,i)=>{const tl=doc.splitTextToSize(`${i+1}. ${s}`,CW-2);ensure(tl.length*2.9+1);doc.text(tl,L+1,y+2);y+=tl.length*2.9+.4});doc.setTextColor(...TX);y+=1}
   // Firmas
-  ensure(34);y+=4;const fw=(CW-20)/2;
-  if(o.firma){try{doc.addImage(o.firma,"JPEG",L+fw/2-28,y,56,18.7)}catch(e){}}
-  y+=20;doc.setDrawColor(60);doc.setLineWidth(.3);doc.line(L,y,L+fw,y);doc.line(R-fw,y,R,y);
+  ensure(30);y+=2;const fw=(CW-20)/2;
+  if(o.firma){try{doc.addImage(o.firma,"JPEG",L+fw/2-24,y,48,16)}catch(e){}}
+  y+=17;doc.setDrawColor(60);doc.setLineWidth(.3);doc.line(L,y,L+fw,y);doc.line(R-fw,y,R,y);
   doc.setFontSize(8);doc.setFont("helvetica","bold");doc.text("Firma del cliente",L+fw/2,y+4,{align:"center"});doc.text("Recibido por (taller)",R-fw/2,y+4,{align:"center"});
   doc.setFont("helvetica","normal");doc.text(c.entrega||c.nombre||"",L+fw/2,y+8,{align:"center"});doc.text(o.recibidoPor||"",R-fw/2,y+8,{align:"center"});
   doc.setFontSize(6.8);doc.setTextColor(110);doc.text("Con su firma, el cliente acepta el inventario, el estado del vehículo descrito y las condiciones de esta orden.",W/2,y+13,{align:"center"});doc.setTextColor(...TX);
@@ -712,7 +823,7 @@ async function pdfOrden(o,m){
 
 /* ---------- Render general ---------- */
 function render(){
-  renderTaller();renderHist();
+  renderTaller();renderHist();renderVeh();
   $("#dlRecibe").innerHTML=[...new Set(state.ordenes.map(o=>o.recibidoPor).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join("");
   $("#dlClientes").innerHTML=[...new Set(state.ordenes.map(o=>o.cliente?.nombre).filter(Boolean))].sort().map(x=>`<option value="${esc(x)}">`).join("");
   if(!state.editId)$("#numPill").textContent=numTxt(nextNum());
@@ -745,6 +856,7 @@ try{showTab(localStorage.getItem("rv_tab")||"recibir")}catch(e){showTab("recibir
     state.unsub.push(fs.collection("ordenes").onSnapshot({includeMetadataChanges:true},s=>{state.ordenes=s.docs.map(d=>({id:d.id,...d.data()}));
       if(!listo&&!s.metadata.fromCache){listo=true;clearTimeout(timer);$("#status").textContent="Órdenes al día. Todo lo que guardes lo ve el equipo del taller."}render()},
       e=>{clearTimeout(timer);$("#status").textContent="Error al leer las órdenes: "+e.message}));
+    state.unsub.push(fs.collection("vehiculos").onSnapshot(s=>{state.vehiculos=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{}));
     state.unsub.push(fs.doc("config/taller").onSnapshot(s=>{state.taller=s.exists?{...DEF_TALLER,...s.data()}:{...DEF_TALLER};renderAjustes();renderTaller()},()=>{}));
   });
 })();
