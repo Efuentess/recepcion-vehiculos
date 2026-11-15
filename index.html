@@ -198,6 +198,7 @@ tr:last-child td{border-bottom:0}
     <h3>Estado exterior</h3>
     <div class="danos">
       <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="seg" role="group" aria-label="Tipo de vehículo" id="segTipo"></div>
         <div class="seg" role="group" aria-label="Tipo de daño" id="segDano"></div>
         <div class="carbox"><svg id="car" viewBox="0 0 600 330" role="img" aria-label="Diagrama del vehículo visto desde arriba. Toca donde haya un daño."></svg></div>
         <span class="hint">Elige el tipo de daño y toca el diagrama donde está. Toca una marca para quitarla.</span>
@@ -256,6 +257,7 @@ tr:last-child td{border-bottom:0}
         <label>Modelo<input id="vfModelo" autocomplete="off"></label>
         <label>Año<input id="vfAnio" type="number" inputmode="numeric"></label>
         <label>Color<input id="vfColor" autocomplete="off"></label>
+        <label>Tipo<select id="vfTipo"><option value="sedan">Sedán</option><option value="pickup">Pick up</option><option value="suv">Camioneta</option><option value="microbus">Microbús</option></select></label>
         <label>VIN / chasis<input id="vfVin" autocomplete="off"></label>
         <label class="span2">Dueño (nombre o empresa)<input id="vfNombre" autocomplete="off" list="dlClientes"></label>
         <label>Teléfono<input id="vfTel" type="tel" inputmode="tel" autocomplete="off"></label>
@@ -328,7 +330,7 @@ const DEF_TALLER={nombre:"AUTOMOTRIZ SALVADOR MORALES",tel:"+503 6169-3188",corr
     "El vehículo se entrega únicamente al cliente o a la persona que este autorice, presentando esta orden.",
     "El cliente autoriza las pruebas de manejo necesarias para el diagnóstico y la verificación del trabajo."].join("\n")};
 
-const state={ordenes:[],taller:{...DEF_TALLER},db:null,user:null,dl:null,assets:null,editId:null,fotoCache:{},unsub:[],vehiculos:[],logoTmp:undefined,
+const state={ordenes:[],taller:{...DEF_TALLER},db:null,user:null,dl:null,assets:null,editId:null,fotoCache:{},unsub:[],vehiculos:[],logoTmp:undefined,tipo:"sedan",
   comb:2,danoTipo:"R",danos:[],fotos:[],firma:null,sigDirty:false,confirmDel:null,entregaId:null};
 
 const pad=n=>String(n).padStart(2,"0");
@@ -363,32 +365,64 @@ $("#invTodo").onclick=()=>$$("[data-inv]").forEach(c=>c.checked=true);
 $("#invNada").onclick=()=>$$("[data-inv]").forEach(c=>c.checked=false);
 
 /* ---------- Diagrama de daños ---------- */
-const CAR_SVG=`
-<g fill="none" stroke="#5a4c4c" stroke-width="2.4" stroke-linejoin="round">
-  <rect x="120" y="22" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/><rect x="420" y="22" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/>
-  <rect x="120" y="282" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/><rect x="420" y="282" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/>
+const GLASS="#e8eef2";
+const W4=(r1,r2)=>`<rect x="${r1}" y="22" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/><rect x="${r2}" y="22" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/><rect x="${r1}" y="282" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/><rect x="${r2}" y="282" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/>`;
+const ESPEJOS=x=>`<path d="M${x} 42 L${x+4} 26 L${x+24} 26 L${x+22} 42" fill="#fff"/><path d="M${x} 288 L${x+4} 304 L${x+24} 304 L${x+22} 288" fill="#fff"/>`;
+const TIPOS={
+ sedan:{label:"Sedán",svg:W4(120,420)+`
   <path d="M70 165 C70 85 95 45 160 42 L450 42 C520 45 548 80 552 165 C548 250 520 285 450 288 L160 288 C95 285 70 245 70 165 Z" fill="#fff"/>
-  <path d="M378 62 L430 78 C448 110 448 220 430 252 L378 268 C388 220 388 110 378 62 Z" fill="#e8eef2"/>
-  <path d="M198 70 L162 86 C150 120 150 210 162 244 L198 260 C190 210 190 120 198 70 Z" fill="#e8eef2"/>
+  <path d="M378 62 L430 78 C448 110 448 220 430 252 L378 268 C388 220 388 110 378 62 Z" fill="${GLASS}"/>
+  <path d="M198 70 L162 86 C150 120 150 210 162 244 L198 260 C190 210 190 120 198 70 Z" fill="${GLASS}"/>
   <rect x="210" y="70" width="160" height="190" rx="14"/>
-  <line x1="210" y1="70" x2="198" y2="70"/><line x1="370" y1="70" x2="378" y2="62"/>
-  <line x1="210" y1="260" x2="198" y2="260"/><line x1="370" y1="260" x2="378" y2="268"/>
+  <line x1="210" y1="70" x2="198" y2="70"/><line x1="370" y1="70" x2="378" y2="62"/><line x1="210" y1="260" x2="198" y2="260"/><line x1="370" y1="260" x2="378" y2="268"/>
   <path d="M440 78 L515 92"/><path d="M440 252 L515 238"/>
-  <line x1="290" y1="42" x2="290" y2="70"/><line x1="290" y1="260" x2="290" y2="288"/>
-  <path d="M368 42 L372 26 L392 26 L390 42" fill="#fff"/><path d="M368 288 L372 304 L392 304 L390 288" fill="#fff"/>
-  <path d="M540 120 C548 140 548 190 540 210" stroke-width="1.6"/><path d="M80 120 C74 140 74 190 80 210" stroke-width="1.6"/>
-</g>
-<g font-family="IBM Plex Sans,Arial,sans-serif" font-size="13" font-weight="600" fill="#8a7c7c" text-anchor="middle">
-  <text x="575" y="170" transform="rotate(90 575 170)">FRENTE</text>
-  <text x="30" y="170" transform="rotate(-90 30 170)">ATRÁS</text>
-  <text x="290" y="16">LADO IZQUIERDO</text><text x="290" y="326">LADO DERECHO</text>
-</g>`;
+  <line x1="290" y1="42" x2="290" y2="70"/><line x1="290" y1="260" x2="290" y2="288"/>`+ESPEJOS(368)+`
+  <path d="M540 120 C548 140 548 190 540 210" stroke-width="1.6"/><path d="M80 120 C74 140 74 190 80 210" stroke-width="1.6"/>`},
+ pickup:{label:"Pick up",svg:W4(100,430)+`
+  <path d="M58 165 C58 92 64 46 104 44 L470 44 C530 46 552 86 556 165 C552 244 530 284 470 286 L104 286 C64 284 58 238 58 165 Z" fill="#fff"/>
+  <path d="M398 64 L442 80 C458 112 458 218 442 250 L398 266 C407 218 407 112 398 64 Z" fill="${GLASS}"/>
+  <rect x="306" y="64" width="92" height="202" rx="12"/>
+  <rect x="290" y="80" width="12" height="170" rx="4" fill="${GLASS}"/>
+  <line x1="282" y1="44" x2="282" y2="286" stroke-width="3"/>
+  <rect x="70" y="58" width="204" height="214" rx="8"/>
+  <rect x="84" y="72" width="178" height="186" rx="4" fill="#f3f1f0"/>
+  <g stroke-width="1.4"><line x1="120" y1="76" x2="120" y2="254"/><line x1="160" y1="76" x2="160" y2="254"/><line x1="200" y1="76" x2="200" y2="254"/><line x1="240" y1="76" x2="240" y2="254"/></g>
+  <path d="M446 80 L520 94"/><path d="M446 250 L520 236"/>
+  <line x1="352" y1="44" x2="352" y2="64"/><line x1="352" y1="266" x2="352" y2="286"/>`+ESPEJOS(384)+`
+  <path d="M544 120 C552 140 552 190 544 210" stroke-width="1.6"/>`},
+ suv:{label:"Camioneta",svg:W4(115,425)+`
+  <path d="M64 165 C64 82 78 44 136 42 L470 42 C528 45 550 82 554 165 C550 248 528 285 470 288 L136 288 C78 286 64 248 64 165 Z" fill="#fff"/>
+  <path d="M394 62 L440 78 C456 110 456 220 440 252 L394 268 C403 220 403 110 394 62 Z" fill="${GLASS}"/>
+  <rect x="118" y="62" width="276" height="206" rx="16"/>
+  <path d="M118 72 L94 84 C86 120 86 210 94 246 L118 258 Z" fill="${GLASS}"/>
+  <g stroke-width="4" stroke="#8a7c7c"><line x1="138" y1="82" x2="378" y2="82"/><line x1="138" y1="248" x2="378" y2="248"/></g>
+  <line x1="215" y1="42" x2="215" y2="62"/><line x1="300" y1="42" x2="300" y2="62"/><line x1="215" y1="268" x2="215" y2="288"/><line x1="300" y1="268" x2="300" y2="288"/>
+  <path d="M446 78 L518 92"/><path d="M446 252 L518 238"/>`+ESPEJOS(380)+`
+  <path d="M542 120 C550 140 550 190 542 210" stroke-width="1.6"/><path d="M74 120 C68 140 68 190 74 210" stroke-width="1.6"/>`},
+ microbus:{label:"Microbús",svg:W4(100,405)+`
+  <rect x="48" y="42" width="508" height="246" rx="34" fill="#fff"/>
+  <path d="M478 60 L514 72 C528 110 528 220 514 258 L478 270 C487 220 487 110 478 60 Z" fill="${GLASS}"/>
+  <rect x="66" y="60" width="412" height="210" rx="12"/>
+  <g stroke-width="1.4"><line x1="126" y1="64" x2="126" y2="266"/><line x1="186" y1="64" x2="186" y2="266"/><line x1="246" y1="64" x2="246" y2="266"/><line x1="306" y1="64" x2="306" y2="266"/><line x1="366" y1="64" x2="366" y2="266"/><line x1="426" y1="64" x2="426" y2="266"/></g>
+  <rect x="54" y="96" width="9" height="138" rx="3" fill="${GLASS}"/>
+  <path d="M330 288 L330 296 L440 296 L440 288" stroke-width="1.6"/>`+ESPEJOS(470)+`
+  <path d="M546 120 C552 140 552 190 546 210" stroke-width="1.6"/>`}
+};
+const LABELS_SVG=`<g font-family="IBM Plex Sans,Arial,sans-serif" font-size="13" font-weight="600" fill="#8a7c7c" text-anchor="middle">
+  <text x="583" y="170" transform="rotate(90 583 170)">FRENTE</text>
+  <text x="22" y="170" transform="rotate(-90 22 170)">ATRÁS</text>
+  <text x="300" y="16">LADO IZQUIERDO</text><text x="300" y="326">LADO DERECHO</text></g>`;
+const carSvg=t=>`<g fill="none" stroke="#5a4c4c" stroke-width="2.4" stroke-linejoin="round">${(TIPOS[t]||TIPOS.sedan).svg}</g>${LABELS_SVG}`;
+const tipoLabel=t=>(TIPOS[t]||{}).label||"";
 $("#segDano").innerHTML=Object.entries(DANOS).map(([k,v])=>`<button type="button" data-dano="${k}"><b>${k}</b> · ${v}</button>`).join("");
+$("#segTipo").innerHTML=Object.entries(TIPOS).map(([k,v])=>`<button type="button" data-tipo="${k}">${v.label}</button>`).join("");
+function setTipo(t){state.tipo=TIPOS[t]?t:"sedan";$$("[data-tipo]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.tipo===state.tipo));renderCar()}
+$("#segTipo").addEventListener("click",e=>{const b=e.target.closest("[data-tipo]");if(b)setTipo(b.dataset.tipo)});
 function setDano(k){state.danoTipo=k;$$("[data-dano]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.dano===k))}
 $("#segDano").addEventListener("click",e=>{const b=e.target.closest("[data-dano]");if(b)setDano(b.dataset.dano)});
 function marksSvg(danos){return danos.map((d,i)=>`<g data-mark="${i}" style="cursor:pointer"><circle cx="${d.x}" cy="${d.y}" r="13" fill="#82242a" stroke="#fff" stroke-width="2"/><text x="${d.x}" y="${d.y+4.5}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="12" font-weight="700" fill="#fff">${i+1}${d.t}</text></g>`).join("")}
 function renderCar(){
-  $("#car").innerHTML=CAR_SVG+marksSvg(state.danos);
+  $("#car").innerHTML=carSvg(state.tipo)+marksSvg(state.danos);
   $("#danoCount").textContent=state.danos.length?`${state.danos.length} daño${state.danos.length>1?"s":""} marcado${state.danos.length>1?"s":""}. Agrega una nota si hace falta.`:"Sin daños marcados.";
   $("#marks").innerHTML=state.danos.map((d,i)=>`<div class="mark"><span class="dot">${i+1}</span><input data-mnote="${i}" value="${esc(d.n||"")}" placeholder="${esc(DANOS[d.t])} — detalle (opcional)"><button class="btn small danger" type="button" data-mrm="${i}" aria-label="Quitar daño ${i+1}">✕</button></div>`).join("");
 }
@@ -463,7 +497,7 @@ function catalogo(){
   const map=new Map();
   state.ordenes.slice().sort((a,b)=>(a.ingreso||"").localeCompare(b.ingreso||"")).forEach(o=>{
     const p=normPlaca(o.vehiculo?.placa);if(!p)return;const prev=map.get(p)||{visitas:0};const v=o.vehiculo||{};
-    map.set(p,{...prev,placa:p,marca:v.marca||prev.marca,modelo:v.modelo||prev.modelo,anio:v.anio||prev.anio,color:v.color||prev.color,vin:v.vin||prev.vin,
+    map.set(p,{...prev,placa:p,marca:v.marca||prev.marca,modelo:v.modelo||prev.modelo,anio:v.anio||prev.anio,color:v.color||prev.color,tipo:v.tipo||prev.tipo,vin:v.vin||prev.vin,
       cliente:{...(prev.cliente||{}),...Object.fromEntries(Object.entries(o.cliente||{}).filter(([k,x])=>x&&k!=="entrega"))},
       visitas:prev.visitas+1,ultima:o.ingreso,ultimoKm:v.km??prev.ultimoKm});
   });
@@ -478,7 +512,7 @@ function llenarDesdePlaca(forzar){
   if(!veh){if(forzar)msg($("#placaMsg"),"Vehículo nuevo: se guardará en la lista de vehículos al guardar la orden.");return}
   $("#vPlaca").value=p;const c=veh.cliente||{};
   const set=(id,val)=>{if(val!=null&&val!==""&&(forzar||!$(id).value))$(id).value=val};
-  set("#vMarca",veh.marca);set("#vModelo",veh.modelo);set("#vAnio",veh.anio);set("#vColor",veh.color);set("#vVin",veh.vin);
+  set("#vMarca",veh.marca);set("#vModelo",veh.modelo);set("#vAnio",veh.anio);set("#vColor",veh.color);set("#vVin",veh.vin);if(veh.tipo&&(forzar||!state.danos.length))setTipo(veh.tipo);
   set("#cNombre",c.nombre);set("#cTel",c.tel);set("#cCorreo",c.correo);set("#cDoc",c.doc);
   const activa=state.ordenes.find(x=>normPlaca(x.vehiculo?.placa)===p&&x.estado!=="Entregado");
   msg($("#placaMsg"),activa?`Ojo: esta placa ya tiene la orden ${numTxt(activa.numero)} abierta (${activa.estado}).`
@@ -489,15 +523,15 @@ $("#vPlaca").addEventListener("blur",()=>{const p=normPlaca($("#vPlaca").value);
 async function guardarVehiculo(d){
   const p=d.placa;if(!p)return;
   const lleno=o=>Object.fromEntries(Object.entries(o).filter(([k,x])=>x!=null&&String(x).trim()!==""));
-  const data={placa:p,...lleno({marca:d.marca,modelo:d.modelo,anio:d.anio,color:d.color,vin:d.vin}),
+  const data={placa:p,...lleno({marca:d.marca,modelo:d.modelo,anio:d.anio,color:d.color,tipo:d.tipo,vin:d.vin}),
     cliente:lleno({nombre:d.cliente?.nombre,tel:d.cliente?.tel,correo:d.cliente?.correo,doc:d.cliente?.doc}),actualizado:new Date().toISOString()};
   if(d.km!=null)data.ultimoKm=d.km;
   await state.db.doc("vehiculos/"+p).set(data,{merge:true});
 }
 
 /* ---------- Pestaña Vehículos ---------- */
-const VF={placa:"#vfPlaca",marca:"#vfMarca",modelo:"#vfModelo",anio:"#vfAnio",color:"#vfColor",vin:"#vfVin"},VC={nombre:"#vfNombre",tel:"#vfTel",correo:"#vfCorreo",doc:"#vfDoc"};
-function limpiarVeh(){Object.values(VF).concat(Object.values(VC)).forEach(s=>$(s).value="");$("#vfPlaca").disabled=false;$("#vfTitle").textContent="Agregar vehículo";$("#btnVehLimpiar").hidden=true}
+const VF={placa:"#vfPlaca",marca:"#vfMarca",modelo:"#vfModelo",anio:"#vfAnio",color:"#vfColor",tipo:"#vfTipo",vin:"#vfVin"},VC={nombre:"#vfNombre",tel:"#vfTel",correo:"#vfCorreo",doc:"#vfDoc"};
+function limpiarVeh(){Object.values(VF).concat(Object.values(VC)).forEach(s=>$(s).value="");$("#vfTipo").value="sedan";$("#vfPlaca").disabled=false;$("#vfTitle").textContent="Agregar vehículo";$("#btnVehLimpiar").hidden=true}
 $("#btnVehLimpiar").onclick=()=>{limpiarVeh();msg($("#vehMsg"),"")};
 $("#btnVehGuardar").onclick=async()=>{
   const m=$("#vehMsg");if(!state.db)return msg(m,"Sin conexión.","err");
@@ -512,7 +546,7 @@ function renderVeh(){
   $("#dlPlacas").innerHTML=cat.map(v=>`<option value="${esc(v.placa)}">${esc([v.marca,v.modelo].filter(Boolean).join(" "))} · ${esc(v.cliente?.nombre||"")}</option>`).join("");
   const q=$("#qVeh").value.trim().toUpperCase();
   const vis=cat.filter(v=>!q||[v.placa,v.marca,v.modelo,v.cliente?.nombre].join(" ").toUpperCase().includes(q)||v.placa.includes(normPlaca(q)));
-  $("#tbVeh").innerHTML=vis.length?vis.map(v=>`<tr><td class="num"><b>${esc(v.placa)}</b></td><td>${esc([v.marca,v.modelo,v.anio].filter(Boolean).join(" "))}${v.color?`<div class="status">${esc(v.color)}</div>`:""}</td>
+  $("#tbVeh").innerHTML=vis.length?vis.map(v=>`<tr><td class="num"><b>${esc(v.placa)}</b></td><td>${esc([v.marca,v.modelo,v.anio].filter(Boolean).join(" "))}<div class="status">${esc([tipoLabel(v.tipo),v.color].filter(Boolean).join(" · "))}</div></td>
     <td>${esc(v.cliente?.nombre||"")}</td><td class="num">${esc(v.cliente?.tel||"")}</td><td class="num">${v.visitas||0}</td><td class="num">${v.ultima?fFecha(v.ultima):"—"}</td><td class="num">${v.ultimoKm!=null?km(v.ultimoKm):"—"}</td>
     <td style="white-space:nowrap"><button class="btn small primary" data-vrec="${esc(v.placa)}">Recibir</button> <button class="btn small" data-vedit="${esc(v.placa)}">Editar</button> <button class="btn small" data-vhist="${esc(v.placa)}">Historial</button></td></tr>`).join("")
     :`<tr><td colspan="8" class="empty">${cat.length?"Ningún vehículo coincide.":"Todavía no hay vehículos. Se agregan solos al recibir, o agrégalos arriba."}</td></tr>`;
@@ -522,7 +556,7 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;const d=b.dataset;
   if(d.vrec){limpiarForm();showTab("recibir");window.scrollTo(0,0);$("#vPlaca").value=d.vrec;llenarDesdePlaca(true);$("#vKm").focus()}
   if(d.vedit){const v=catalogo().get(d.vedit);if(!v)return;
-    Object.entries(VF).forEach(([k,s])=>$(s).value=v[k]??"");Object.entries(VC).forEach(([k,s])=>$(s).value=v.cliente?.[k]??"");
+    Object.entries(VF).forEach(([k,s])=>$(s).value=v[k]??(k==="tipo"?"sedan":""));Object.entries(VC).forEach(([k,s])=>$(s).value=v.cliente?.[k]??"");
     $("#vfPlaca").disabled=true;$("#vfTitle").textContent="Editar vehículo "+v.placa;$("#btnVehLimpiar").hidden=false;$("#vfNombre").focus();window.scrollTo(0,0)}
   if(d.vhist){$("#qTexto").value=d.vhist;$("#qDesde").value="";$("#qHasta").value="";$("#qEstado").value="";renderHist();showTab("historial")}
 });
@@ -532,7 +566,7 @@ function leerForm(){
   const inv={};$$("[data-inv]").forEach(c=>inv[INV[+c.dataset.inv]]=c.checked);
   return{ingreso:$("#fIngreso").value,prometida:$("#fPrometida").value,recibidoPor:$("#fRecibe").value.trim(),
     vehiculo:{placa:normPlaca($("#vPlaca").value),marca:$("#vMarca").value.trim(),modelo:$("#vModelo").value.trim(),anio:$("#vAnio").value,
-      color:$("#vColor").value.trim(),vin:$("#vVin").value.trim(),km:$("#vKm").value===""?null:+$("#vKm").value},
+      color:$("#vColor").value.trim(),tipo:state.tipo,vin:$("#vVin").value.trim(),km:$("#vKm").value===""?null:+$("#vKm").value},
     combustible:state.comb,
     cliente:{nombre:$("#cNombre").value.trim(),tel:$("#cTel").value.trim(),correo:$("#cCorreo").value.trim(),doc:$("#cDoc").value.trim(),entrega:$("#cEntrega").value.trim()},
     motivo:$("#fMotivo").value.trim(),testigos:$("#fTestigos").value.trim(),objetos:$("#fObjetos").value.trim(),
@@ -541,7 +575,7 @@ function leerForm(){
 function limpiarForm(){
   state.editId=null;$("#formTitle").textContent="Nueva orden de recepción";$("#btnCancelar").hidden=true;$("#btnGuardar").textContent="Guardar orden";
   ["#fPrometida","#vPlaca","#vMarca","#vModelo","#vAnio","#vColor","#vVin","#vKm","#cNombre","#cTel","#cCorreo","#cDoc","#cEntrega","#fMotivo","#fTestigos","#fObjetos","#fObs"].forEach(s=>$(s).value="");
-  $("#fIngreso").value=nowLocal();$$("[data-inv]").forEach(c=>c.checked=false);setComb(2);
+  $("#fIngreso").value=nowLocal();$$("[data-inv]").forEach(c=>c.checked=false);setComb(2);state.tipo="sedan";$$("[data-tipo]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.tipo==="sedan"));
   state.danos=[];state.fotos=[];renderCar();renderFotos();clearSig();msg($("#placaMsg"),"");
   try{$("#fRecibe").value=localStorage.getItem("rv_recibe")||""}catch(e){}
   $("#numPill").textContent=numTxt(nextNum());
@@ -553,7 +587,7 @@ function cargarForm(o){
   const vals={"#fIngreso":o.ingreso,"#fPrometida":o.prometida,"#fRecibe":o.recibidoPor,"#vPlaca":v.placa,"#vMarca":v.marca,"#vModelo":v.modelo,"#vAnio":v.anio,"#vColor":v.color,"#vVin":v.vin,"#vKm":v.km,
     "#cNombre":c.nombre,"#cTel":c.tel,"#cCorreo":c.correo,"#cDoc":c.doc,"#cEntrega":c.entrega,"#fMotivo":o.motivo,"#fTestigos":o.testigos,"#fObjetos":o.objetos,"#fObs":o.observaciones};
   Object.entries(vals).forEach(([k,val])=>$(k).value=val??"");
-  setComb(o.combustible??2);$$("[data-inv]").forEach(ch=>ch.checked=!!(o.inventario||{})[INV[+ch.dataset.inv]]);
+  setComb(o.combustible??2);state.tipo=TIPOS[v.tipo]?v.tipo:"sedan";$$("[data-tipo]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.tipo===state.tipo));$$("[data-inv]").forEach(ch=>ch.checked=!!(o.inventario||{})[INV[+ch.dataset.inv]]);
   state.danos=(o.danos||[]).map(d=>({...d}));state.fotos=(o.fotos||[]).map(f=>({...f}));renderCar();renderFotos();
   clearSig();state.firma=o.firma||null;if(state.firma){$("#sigph").hidden=true;sig.width=0;requestAnimationFrame(sizeSig)}
   msg($("#placaMsg"),"");msg($("#formMsg"),"");
@@ -713,9 +747,9 @@ $("#btnExcel").onclick=()=>{
 };
 
 /* ---------- PDF de la orden ---------- */
-function svgToPng(danos){
+function svgToPng(danos,tipo){
   return new Promise(res=>{
-    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 330" width="1200" height="660"><rect width="600" height="330" fill="#fff"/>${CAR_SVG}${marksSvg(danos)}</svg>`;
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 330" width="1200" height="660"><rect width="600" height="330" fill="#fff"/>${carSvg(tipo)}${marksSvg(danos)}</svg>`;
     const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=1200;c.height=660;c.getContext("2d").drawImage(im,0,0,1200,660);res(c.toDataURL("image/png"))};
     im.onerror=()=>res(null);im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
   });
@@ -755,7 +789,7 @@ async function pdfOrden(o,m){
   const kv=(a,b)=>[{content:a,styles:{fontStyle:"bold",textColor:[110,95,95]}},b||"—"];
   doc.autoTable({startY:y,margin:{left:L,right:14},theme:"grid",styles:{fontSize:8.2,cellPadding:1.7,lineColor:LN,lineWidth:.2,textColor:TX},
     columnStyles:{0:{cellWidth:28,fillColor:BG},2:{cellWidth:28,fillColor:BG}},
-    body:[[...kv("Cliente",c.nombre),...kv("Placa",v.placa)],[...kv("Teléfono",c.tel),...kv("Vehículo",vehTxt(o))],
+    body:[[...kv("Cliente",c.nombre),...kv("Placa",v.placa)],[...kv("Teléfono",c.tel),...kv("Vehículo",[vehTxt(o),tipoLabel(v.tipo)].filter(Boolean).join(" · "))],
       [...kv("Correo",c.correo),...kv("Color",v.color)],[...kv("DUI / NIT",c.doc),...kv("VIN / chasis",v.vin)],
       [...kv("Entrega el vehículo",c.entrega||c.nombre),...kv("Kilometraje",v.km!=null?km(v.km)+" km":"")],
       [...kv("Entrega prometida",fFecha(o.prometida)),...kv("Combustible",COMB[o.combustible??2])]]});
@@ -779,7 +813,7 @@ async function pdfOrden(o,m){
   y+=2;
   // Estado exterior
   band("ESTADO EXTERIOR");
-  const img=await svgToPng(o.danos||[]);const iw=84,ih=iw*330/600;ensure(ih+2);
+  const img=await svgToPng(o.danos||[],o.vehiculo?.tipo);const iw=84,ih=iw*330/600;ensure(ih+2);
   if(img)doc.addImage(img,"PNG",L,y,iw,ih);
   let ly=y+3;const lx=L+iw+5;doc.setFontSize(7.6);
   doc.setFont("helvetica","bold");doc.text("Simbología: "+Object.entries(DANOS).map(([k,v])=>`${k} = ${v}`).join(" · "),lx,ly,{maxWidth:R-lx});ly+=8;
@@ -830,7 +864,7 @@ function render(){
 }
 
 /* ---------- Arranque ---------- */
-setDano("R");renderCar();limpiarForm();renderAjustes();render();
+setDano("R");setTipo("sedan");limpiarForm();renderAjustes();render();
 try{showTab(localStorage.getItem("rv_tab")||"recibir")}catch(e){showTab("recibir")}
 
 (function iniciarFirebase(){
@@ -839,7 +873,8 @@ try{showTab(localStorage.getItem("rv_tab")||"recibir")}catch(e){showTab("recibir
   if(!cfg||!cfg.apiKey||/PEGA/.test(cfg.apiKey)){$("#status").textContent="Falta configurar Firebase: pega tus datos en el archivo firebase-config.js.";return}
   firebase.initializeApp(cfg);
   const auth=firebase.auth(),fs=firebase.firestore();
-  try{fs.enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(e){}
+  // iPhone/Safari y algunas redes móviles bloquean la conexión en vivo de Firestore: se usa long polling, que funciona en todos.
+  try{fs.settings({experimentalForceLongPolling:true,merge:true})}catch(e){}
   $("#loginForm").addEventListener("submit",async e=>{
     e.preventDefault();const m=$("#lMsg");msg(m,"Entrando…");$("#lBtn").disabled=true;
     try{await auth.signInWithEmailAndPassword($("#lCorreo").value.trim(),$("#lClave").value);msg(m,"")}
