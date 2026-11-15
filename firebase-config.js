@@ -1,11 +1,8 @@
-// Pega aquí la configuración de tu proyecto de Firebase.
-// La encuentras en: Firebase > Configuración del proyecto (engranaje) > Tus apps > App web > "Configuración del SDK" > Config.
-// Cambia solo lo que está entre comillas. Estos datos no son secretos: la seguridad la dan el inicio de sesión y las reglas.
 window.FIREBASE_CONFIG = {
-  apiKey: "PEGA_AQUI_TU_apiKey",
-  authDomain: "PEGA_AQUI.firebaseapp.com",
-  projectId: "PEGA_AQUI",
-  storageBucket: "PEGA_AQUI.appspot.com",
-  messagingSenderId: "PEGA_AQUI",
-  appId: "PEGA_AQUI"
+  apiKey: "AIzaSyCSYWMxp923VFZ5SeYjfj5V6b5r-BSK1qc",
+  authDomain: "recepcion-taller-e255b.firebaseapp.com",
+  projectId: "recepcion-taller-e255b",
+  storageBucket: "recepcion-taller-e255b.firebasestorage.app",
+  messagingSenderId: "52405501224",
+  appId: "1:52405501224:web:f624e5eae1ab1e16a9a41d"
 };
