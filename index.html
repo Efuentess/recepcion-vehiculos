@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Recepción de Vehículos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#f1eeed; --surface:#fff; --ink:#221c1c; --muted:#6a5f5f; --line:#ddd4d3; --soft:#f7f5f4;
+  --accent:#82242a; --accent-ink:#fff; --hi:#e2616a; --bar:#231b1b; --bar-ink:#f4efe9;
+  --ok:#2f7d4f; --warn:#a86a00; --danger:#b23a2c;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);padding-bottom:env(safe-area-inset-bottom,0px)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bar)}
+[hidden]{display:none!important}
+.top{background:var(--bar);color:var(--bar-ink);position:sticky;top:env(safe-area-inset-top,0px);z-index:5;border-bottom:4px solid var(--accent);padding-top:env(safe-area-inset-top,0px)}
+.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 24px;padding-block:14px 0}
+.brand{display:flex;flex-direction:column;padding-bottom:12px}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:28px;letter-spacing:.02em;margin:0;line-height:1;text-transform:uppercase}
+.brand span{font-size:12px;opacity:.7;letter-spacing:.06em;text-transform:uppercase}
+nav{display:flex;gap:2px;overflow-x:auto;margin-left:auto}
+nav button{font:600 14px var(--f-body);background:none;color:var(--bar-ink);border:0;padding:10px 14px;opacity:.7;cursor:pointer;border-radius:6px 6px 0 0;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);opacity:1}
+nav button:hover{opacity:1}
+nav .count{font-family:var(--f-num);font-size:12px;margin-left:4px;opacity:.85}
+main.wrap{padding-block:22px 48px;display:flex;flex-direction:column;gap:18px}
+h2{font-family:var(--f-display);font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.03em;margin:0}
+h3{font-family:var(--f-display);font-weight:700;font-size:17px;text-transform:uppercase;letter-spacing:.04em;margin:0;color:var(--accent);display:flex;align-items:center;gap:8px}
+h3::after{content:"";flex:1;height:1px;background:var(--line)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:16px}
+.head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+input,select,textarea{font:15px var(--f-body);color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:7px;padding:9px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:64px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#vPlaca{font-family:var(--f-num);text-transform:uppercase;font-size:17px;letter-spacing:.06em}
+.span2{grid-column:span 2}.spanAll{grid-column:1/-1}@media(max-width:560px){.span2{grid-column:auto}}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:600 13px var(--f-body);border:0;background:var(--soft);color:var(--muted);padding:9px 13px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.btn{font:600 14px var(--f-body);border-radius:8px;padding:10px 16px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:transparent}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.msg{font-size:14px;min-height:1.4em}.msg.err{color:var(--danger)}.msg.ok{color:var(--ok)}
+.status{font-size:13px;color:var(--muted);margin:0}
+.hint{font-size:13px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400}
+/* inventario */
+.inv{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.chk{flex-direction:row;align-items:center;gap:10px;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:9px 11px;text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--ink);cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.chk:has(input:checked){border-color:var(--accent);background:#f8eced}
+/* daños */
+.danos{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+@media(max-width:760px){.danos{grid-template-columns:1fr}}
+.carbox{border:1px solid var(--line);border-radius:10px;background:var(--soft);padding:8px}
+#car{width:100%;height:auto;display:block;cursor:crosshair;touch-action:manipulation}
+.marklist{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow:auto}
+.mark{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;font-size:14px}
+.mark .dot{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 12px var(--f-num)}
+.mark input{padding:6px 8px;font-size:14px}
+/* fotos */
+.fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+.foto{position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--soft)}
+.foto img{width:100%;height:100%;object-fit:cover;display:block}
+.foto button{position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:26px;height:26px;background:rgba(0,0,0,.65);color:#fff;cursor:pointer;font-size:15px;line-height:1}
+.addfoto{display:grid;place-items:center;aspect-ratio:4/3;border:2px dashed var(--line);border-radius:8px;color:var(--muted);font-weight:600;font-size:13px;cursor:pointer;text-align:center;padding:6px;text-transform:none;letter-spacing:0}
+.addfoto input{display:none}
+/* firma */
+.sigwrap{border:1px solid var(--line);border-radius:10px;background:#fff;position:relative}
+#sig{width:100%;height:170px;display:block;touch-action:none;cursor:crosshair}
+.sigline{position:absolute;left:24px;right:24px;bottom:34px;border-top:1px dashed #c9bdbc;pointer-events:none}
+.sigph{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:12px;color:var(--muted);pointer-events:none}
+/* tablero */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card[data-estado="Listo para entregar"]{border-left-color:var(--ok)}
+.card[data-estado="Esperando repuestos"],.card[data-estado="Esperando aprobación"]{border-left-color:var(--warn)}
+.plate{font:600 20px var(--f-num);letter-spacing:.06em;background:var(--bar);color:var(--bar-ink);padding:2px 10px;border-radius:5px}
+.card .row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.card .meta{font-size:13px;color:var(--muted)}
+.card .motivo{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--soft);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.late{color:var(--danger);border-color:var(--danger)}
+.pill.ok{color:var(--ok);border-color:var(--ok)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.tile{border-left:3px solid var(--accent);padding:4px 12px}
+.tile b{display:block;font-family:var(--f-num);font-size:24px}
+.tile span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.entrega{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:var(--soft);padding:8px;border-radius:8px}
+.entrega input{flex:1;min-width:140px;padding:7px 9px;font-size:14px}
+/* tablas */
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;background:var(--soft);padding:9px 10px;white-space:nowrap;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.num{font-family:var(--f-num);white-space:nowrap}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.code{font-family:var(--f-num);font-size:13px;background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.confirm{display:inline-flex;gap:6px;align-items:center;font-size:13px}
+.login{position:fixed;inset:0;z-index:50;background:var(--bar);display:grid;place-items:center;padding:20px}
+.login form{background:var(--surface);border-radius:12px;padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px;border-top:5px solid var(--accent)}
+.login h2{color:var(--accent)}
+.userbox{display:flex;gap:8px;align-items:center;font-size:12px;opacity:.85;padding-bottom:12px}
+.userbox button{font:600 12px var(--f-body);background:none;border:1px solid rgba(255,255,255,.35);color:var(--bar-ink);border-radius:6px;padding:4px 8px;cursor:pointer}
+.sticky-save{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);margin:0 -18px -18px;padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));border-radius:0 0 10px 10px}
+</style></head>
+<body>
+<div class="login" id="login" hidden>
+  <form id="loginForm" novalidate>
+    <span class="hint" id="loginTaller">AUTOMOTRIZ SALVADOR MORALES</span>
+    <h2>Recepción de Vehículos</h2>
+    <label>Correo<input type="email" id="lCorreo" autocomplete="username" required></label>
+    <label>Contraseña<input type="password" id="lClave" autocomplete="current-password" required></label>
+    <button class="btn primary" type="submit" id="lBtn">Entrar</button>
+    <span class="msg" id="lMsg" role="status"></span>
+  </form>
+</div>
+<header class="top"><div class="wrap">
+  <div class="brand"><span id="tallerTop">Automotriz Salvador Morales</span><h1>Recepción de Vehículos</h1></div>
+  <div class="userbox" id="userbox" hidden><span id="userMail"></span><button type="button" id="btnSalir">Salir</button></div>
+  <nav role="tablist" aria-label="Secciones">
+    <button role="tab" data-tab="recibir" aria-selected="true">Recibir</button>
+    <button role="tab" data-tab="taller" aria-selected="false">En taller<span class="count" id="cntTaller"></span></button>
+    <button role="tab" data-tab="historial" aria-selected="false">Historial</button>
+    <button role="tab" data-tab="ajustes" aria-selected="false">Ajustes</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <p class="status" id="status">Conectando con los registros compartidos…</p>
+
+  <!-- RECIBIR -->
+  <section data-view="recibir" class="panel">
+    <div class="head"><h2 id="formTitle">Nueva orden de recepción</h2><span class="pill" id="numPill">REC-0001</span></div>
+
+    <h3>Ingreso</h3>
+    <div class="grid">
+      <label>Fecha y hora de ingreso<input type="datetime-local" id="fIngreso"></label>
+      <label>Entrega prometida<input type="date" id="fPrometida"></label>
+      <label>Recibido por<input id="fRecibe" placeholder="Nombre de quien recibe" list="dlRecibe" autocomplete="off"></label>
+    </div>
+
+    <h3>Vehículo</h3>
+    <div class="grid">
+      <label>Placa<input id="vPlaca" placeholder="P123456" autocomplete="off" autocapitalize="characters"></label>
+      <label>Marca<input id="vMarca" placeholder="Toyota" list="dlMarcas" autocomplete="off"></label>
+      <label>Modelo<input id="vModelo" placeholder="Corolla" autocomplete="off"></label>
+      <label>Año<input id="vAnio" type="number" inputmode="numeric" min="1950" max="2100" placeholder="2018"></label>
+      <label>Color<input id="vColor" placeholder="Gris" autocomplete="off"></label>
+      <label>VIN / chasis<input id="vVin" placeholder="Opcional" autocomplete="off"></label>
+      <label>Kilometraje<input id="vKm" type="number" inputmode="numeric" min="0" placeholder="125000"></label>
+      <label>Combustible
+        <div class="seg" role="group" aria-label="Nivel de combustible" id="segComb"></div>
+      </label>
+    </div>
+    <span class="msg" id="placaMsg" role="status"></span>
+
+    <h3>Cliente</h3>
+    <div class="grid">
+      <label class="span2">Nombre o empresa<input id="cNombre" placeholder="Nombre del cliente" autocomplete="off" list="dlClientes"></label>
+      <label>Teléfono<input id="cTel" type="tel" inputmode="tel" placeholder="7000-0000" autocomplete="off"></label>
+      <label>Correo<input id="cCorreo" type="email" placeholder="Opcional" autocomplete="off"></label>
+      <label>DUI / NIT<input id="cDoc" placeholder="Opcional" autocomplete="off"></label>
+      <label>Persona que entrega<input id="cEntrega" placeholder="Si no es el cliente" autocomplete="off"></label>
+    </div>
+
+    <h3>Trabajo solicitado</h3>
+    <div class="grid">
+      <label class="spanAll">Motivo de ingreso / falla reportada por el cliente<textarea id="fMotivo" placeholder="Ej. Ruido en la suspensión delantera, mantenimiento de 100,000 km, revisar A/C"></textarea></label>
+      <label class="span2">Testigos encendidos en el tablero<input id="fTestigos" placeholder="Ej. Check engine, ABS" autocomplete="off"></label>
+      <label class="span2">Objetos de valor declarados<input id="fObjetos" placeholder="Ej. Lentes, cargador, ninguno" autocomplete="off"></label>
+    </div>
+
+    <h3>Inventario</h3>
+    <div class="actions"><span class="hint">Marca lo que viene con el vehículo.</span>
+      <button class="btn small" type="button" id="invTodo">Marcar todo</button><button class="btn small" type="button" id="invNada">Quitar todo</button></div>
+    <div class="inv" id="inv"></div>
+
+    <h3>Estado exterior</h3>
+    <div class="danos">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="seg" role="group" aria-label="Tipo de daño" id="segDano"></div>
+        <div class="carbox"><svg id="car" viewBox="0 0 600 330" role="img" aria-label="Diagrama del vehículo visto desde arriba. Toca donde haya un daño."></svg></div>
+        <span class="hint">Elige el tipo de daño y toca el diagrama donde está. Toca una marca para quitarla.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="hint" id="danoCount">Sin daños marcados.</div>
+        <div class="marklist" id="marks"></div>
+      </div>
+    </div>
+
+    <h3>Fotos</h3>
+    <div class="fotos" id="fotos"></div>
+    <span class="msg" id="fotoMsg" role="status"></span>
+
+    <h3>Observaciones</h3>
+    <label class="spanAll" style="text-transform:none"><textarea id="fObs" placeholder="Llantas, parabrisas, interiores, cualquier detalle del estado del vehículo"></textarea></label>
+
+    <h3>Firma del cliente</h3>
+    <div class="sigwrap"><canvas id="sig"></canvas><div class="sigline"></div><div class="sigph" id="sigph">Firme aquí con el dedo o el mouse</div></div>
+    <div class="actions"><button class="btn small" type="button" id="sigClear">Borrar firma</button>
+      <span class="hint">Al firmar, el cliente acepta el inventario, el estado del vehículo y las condiciones del taller.</span></div>
+
+    <div class="actions sticky-save">
+      <button class="btn primary" id="btnGuardar" type="button">Guardar orden</button>
+      <button class="btn" id="btnGuardarPdf" type="button">Guardar y descargar PDF</button>
+      <button class="btn" id="btnCancelar" type="button" hidden>Cancelar edición</button>
+      <span class="msg" id="formMsg" role="status"></span>
+    </div>
+    <datalist id="dlMarcas"><option>Toyota</option><option>Nissan</option><option>Hyundai</option><option>Kia</option><option>Mazda</option><option>Honda</option><option>Mitsubishi</option><option>Chevrolet</option><option>Ford</option><option>Suzuki</option><option>Isuzu</option><option>Volkswagen</option></datalist>
+    <datalist id="dlRecibe"></datalist><datalist id="dlClientes"></datalist>
+  </section>
+
+  <!-- EN TALLER -->
+  <section data-view="taller" class="panel" hidden>
+    <div class="head"><h2>Vehículos en el taller</h2>
+      <input id="qTaller" placeholder="Buscar placa o cliente" style="max-width:260px" autocomplete="off"></div>
+    <div class="tiles">
+      <div class="tile"><b id="tEn">0</b><span>En taller</span></div>
+      <div class="tile"><b id="tListos">0</b><span>Listos para entregar</span></div>
+      <div class="tile"><b id="tAtraso">0</b><span>Pasados de fecha</span></div>
+      <div class="tile"><b id="tHoy">0</b><span>Recibidos hoy</span></div>
+    </div>
+    <div class="cards" id="cards"></div>
+    <span class="msg" id="tallerMsg" role="status"></span>
+  </section>
+
+  <!-- HISTORIAL -->
+  <section data-view="historial" class="panel" hidden>
+    <div class="head"><h2>Historial de órdenes</h2><span class="pill" id="histPill">0 órdenes</span></div>
+    <div class="grid">
+      <label class="span2">Buscar<input id="qTexto" placeholder="Placa, cliente, marca o N° de orden" autocomplete="off"></label>
+      <label>Desde<input type="date" id="qDesde"></label>
+      <label>Hasta<input type="date" id="qHasta"></label>
+      <label>Estado<select id="qEstado"><option value="">Todos</option></select></label>
+    </div>
+    <div class="actions"><span style="flex:1"></span><button class="btn" id="btnExcel" type="button">Exportar a Excel</button></div>
+    <div class="tablebox"><table>
+      <thead><tr><th>N°</th><th>Ingreso</th><th>Placa</th><th>Vehículo</th><th>Cliente</th><th>Km</th><th>Estado</th><th>Entregado</th><th></th></tr></thead>
+      <tbody id="tbHist"></tbody></table></div>
+    <span class="msg" id="histMsg" role="status"></span>
+  </section>
+
+  <!-- AJUSTES -->
+  <section data-view="ajustes" class="panel" hidden>
+    <h2>Datos del taller</h2>
+    <p class="status">Estos datos salen en el encabezado del PDF de la orden de recepción.</p>
+    <div class="grid">
+      <label class="span2">Nombre del taller<input id="aNombre"></label>
+      <label>Teléfono<input id="aTel"></label>
+      <label>Correo<input id="aCorreo"></label>
+      <label>NRC<input id="aNrc"></label>
+      <label class="spanAll">Dirección<input id="aDir"></label>
+      <label class="spanAll">Condiciones del taller (una por línea, salen en el PDF)<textarea id="aCond" style="min-height:150px"></textarea></label>
+    </div>
+    <div class="actions"><button class="btn primary" id="btnAjustes" type="button">Guardar datos del taller</button><span class="msg" id="ajMsg" role="status"></span></div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+(function(){
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const INV=["Llanta de repuesto","Gata y llave de ruedas","Herramientas","Triángulos","Extintor","Botiquín","Radio / pantalla","Tapetes","Copas / tapones","Antena","Espejos laterales","Tapón de combustible","Tarjeta de circulación","Control de alarma"];
+const ESTADOS=["Recibido","En diagnóstico","Esperando aprobación","En reparación","Esperando repuestos","Listo para entregar","Entregado"];
+const DANOS={R:"Rayón",G:"Golpe / abolladura",Q:"Quebrado / estrellado",P:"Pintura dañada",F:"Faltante"};
+const COMB=["Vacío","1/4","1/2","3/4","Lleno"];
+const DEF_TALLER={nombre:"AUTOMOTRIZ SALVADOR MORALES",tel:"+503 6169-3188",correo:"facturacionsalvadormorales@gmail.com",nrc:"299013-4",
+  dir:"Boulevard Venezuela, 9 Avenida Sur, Pasaje Marroquín, #1003 Colonia Ferrocarril, San Salvador Centro, San Salvador",
+  cond:["El taller no se hace responsable por objetos de valor que no hayan sido declarados en esta orden.",
+    "Todo trabajo adicional a lo solicitado se realizará únicamente con autorización del cliente.",
+    "Los repuestos reemplazados quedan a disposición del cliente al momento de la entrega, si los solicita.",
+    "El vehículo se entrega únicamente al cliente o a la persona que este autorice, presentando esta orden.",
+    "El cliente autoriza las pruebas de manejo necesarias para el diagnóstico y la verificación del trabajo."].join("\n")};
+
+const state={ordenes:[],taller:{...DEF_TALLER},db:null,user:null,dl:null,assets:null,editId:null,fotoCache:{},unsub:[],
+  comb:2,danoTipo:"R",danos:[],fotos:[],firma:null,sigDirty:false,confirmDel:null,entregaId:null};
+
+const pad=n=>String(n).padStart(2,"0");
+const nowLocal=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`};
+const hoy=()=>nowLocal().slice(0,10);
+const fFecha=f=>{if(!f)return"";const[y,m,d]=f.slice(0,10).split("-");return`${d}/${m}/${y}`};
+const fFechaHora=f=>{if(!f)return"";return fFecha(f)+(f.length>10?" "+f.slice(11,16):"")};
+const numTxt=n=>"REC-"+String(n||0).padStart(4,"0");
+const normPlaca=p=>String(p||"").toUpperCase().replace(/[\s-]/g,"");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const km=n=>n==null||n===""?"":Number(n).toLocaleString("es-SV");
+const diasEntre=(a,b)=>Math.max(0,Math.floor((new Date(b.slice(0,10))-new Date(a.slice(0,10)))/864e5));
+function msg(el,t,k){el.textContent=t;el.className="msg"+(k?" "+k:"")}
+const vehTxt=o=>[o.vehiculo?.marca,o.vehiculo?.modelo,o.vehiculo?.anio].filter(Boolean).join(" ");
+const nextNum=()=>state.ordenes.reduce((m,o)=>Math.max(m,+o.numero||0),0)+1;
+
+/* ---------- Pestañas ---------- */
+function showTab(t){
+  $$("nav button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
+  $$("[data-view]").forEach(s=>s.hidden=s.dataset.view!==t);
+  try{localStorage.setItem("rv_tab",t)}catch(e){}
+  if(t==="recibir")requestAnimationFrame(sizeSig);
+}
+$$("nav button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+
+/* ---------- Combustible / inventario ---------- */
+$("#segComb").innerHTML=COMB.map((c,i)=>`<button type="button" data-comb="${i}">${c}</button>`).join("");
+function setComb(i){state.comb=i;$$("[data-comb]").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.comb===i))}
+$("#segComb").addEventListener("click",e=>{const b=e.target.closest("[data-comb]");if(b)setComb(+b.dataset.comb)});
+$("#inv").innerHTML=INV.map((t,i)=>`<label class="chk"><input type="checkbox" data-inv="${i}">${esc(t)}</label>`).join("");
+$("#invTodo").onclick=()=>$$("[data-inv]").forEach(c=>c.checked=true);
+$("#invNada").onclick=()=>$$("[data-inv]").forEach(c=>c.checked=false);
+
+/* ---------- Diagrama de daños ---------- */
+const CAR_SVG=`
+<g fill="none" stroke="#5a4c4c" stroke-width="2.4" stroke-linejoin="round">
+  <rect x="120" y="22" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/><rect x="420" y="22" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/>
+  <rect x="120" y="282" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/><rect x="420" y="282" width="70" height="26" rx="8" fill="#3b3232" stroke="none"/>
+  <path d="M70 165 C70 85 95 45 160 42 L450 42 C520 45 548 80 552 165 C548 250 520 285 450 288 L160 288 C95 285 70 245 70 165 Z" fill="#fff"/>
+  <path d="M378 62 L430 78 C448 110 448 220 430 252 L378 268 C388 220 388 110 378 62 Z" fill="#e8eef2"/>
+  <path d="M198 70 L162 86 C150 120 150 210 162 244 L198 260 C190 210 190 120 198 70 Z" fill="#e8eef2"/>
+  <rect x="210" y="70" width="160" height="190" rx="14"/>
+  <line x1="210" y1="70" x2="198" y2="70"/><line x1="370" y1="70" x2="378" y2="62"/>
+  <line x1="210" y1="260" x2="198" y2="260"/><line x1="370" y1="260" x2="378" y2="268"/>
+  <path d="M440 78 L515 92"/><path d="M440 252 L515 238"/>
+  <line x1="290" y1="42" x2="290" y2="70"/><line x1="290" y1="260" x2="290" y2="288"/>
+  <path d="M368 42 L372 26 L392 26 L390 42" fill="#fff"/><path d="M368 288 L372 304 L392 304 L390 288" fill="#fff"/>
+  <path d="M540 120 C548 140 548 190 540 210" stroke-width="1.6"/><path d="M80 120 C74 140 74 190 80 210" stroke-width="1.6"/>
+</g>
+<g font-family="IBM Plex Sans,Arial,sans-serif" font-size="13" font-weight="600" fill="#8a7c7c" text-anchor="middle">
+  <text x="575" y="170" transform="rotate(90 575 170)">FRENTE</text>
+  <text x="30" y="170" transform="rotate(-90 30 170)">ATRÁS</text>
+  <text x="290" y="16">LADO IZQUIERDO</text><text x="290" y="326">LADO DERECHO</text>
+</g>`;
+$("#segDano").innerHTML=Object.entries(DANOS).map(([k,v])=>`<button type="button" data-dano="${k}"><b>${k}</b> · ${v}</button>`).join("");
+function setDano(k){state.danoTipo=k;$$("[data-dano]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.dano===k))}
+$("#segDano").addEventListener("click",e=>{const b=e.target.closest("[data-dano]");if(b)setDano(b.dataset.dano)});
+function marksSvg(danos){return danos.map((d,i)=>`<g data-mark="${i}" style="cursor:pointer"><circle cx="${d.x}" cy="${d.y}" r="13" fill="#82242a" stroke="#fff" stroke-width="2"/><text x="${d.x}" y="${d.y+4.5}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="12" font-weight="700" fill="#fff">${i+1}${d.t}</text></g>`).join("")}
+function renderCar(){
+  $("#car").innerHTML=CAR_SVG+marksSvg(state.danos);
+  $("#danoCount").textContent=state.danos.length?`${state.danos.length} daño${state.danos.length>1?"s":""} marcado${state.danos.length>1?"s":""}. Agrega una nota si hace falta.`:"Sin daños marcados.";
+  $("#marks").innerHTML=state.danos.map((d,i)=>`<div class="mark"><span class="dot">${i+1}</span><input data-mnote="${i}" value="${esc(d.n||"")}" placeholder="${esc(DANOS[d.t])} — detalle (opcional)"><button class="btn small danger" type="button" data-mrm="${i}" aria-label="Quitar daño ${i+1}">✕</button></div>`).join("");
+}
+$("#car").addEventListener("click",e=>{
+  const g=e.target.closest("[data-mark]");
+  if(g){state.danos.splice(+g.dataset.mark,1);renderCar();return}
+  const svg=$("#car"),pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
+  const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+  state.danos.push({x:Math.round(p.x),y:Math.round(p.y),t:state.danoTipo,n:""});renderCar();
+});
+$("#marks").addEventListener("input",e=>{const i=e.target.dataset.mnote;if(i!=null)state.danos[+i].n=e.target.value});
+$("#marks").addEventListener("click",e=>{const b=e.target.closest("[data-mrm]");if(b){state.danos.splice(+b.dataset.mrm,1);renderCar()}});
+
+/* ---------- Fotos ---------- */
+async function fotoUrl(id){
+  if(state.fotoCache[id])return state.fotoCache[id];
+  try{const s=await state.db.doc("fotos/"+id).get();if(s.exists){state.fotoCache[id]=s.data().data;return s.data().data}}catch(e){}
+  return null;
+}
+function renderFotos(){
+  const add=state.db?`<label class="addfoto">+ Agregar fotos<input type="file" accept="image/*" multiple id="fotoIn"></label>`:"";
+  $("#fotos").innerHTML=state.fotos.map((f,i)=>`<div class="foto"><img data-fid="${esc(f.id)}" alt="Foto ${i+1} del vehículo"><button type="button" data-frm="${i}" aria-label="Quitar foto">×</button></div>`).join("")+add;
+  $$("[data-fid]").forEach(async im=>{const u=await fotoUrl(im.dataset.fid);if(u)im.src=u});
+  const inp=$("#fotoIn");if(inp)inp.onchange=()=>subirFotos([...inp.files]);
+}
+$("#fotos").addEventListener("click",e=>{const b=e.target.closest("[data-frm]");if(b){state.fotos.splice(+b.dataset.frm,1);renderFotos()}});
+async function comprimir(file){
+  const bmp=await createImageBitmap(file);let max=1100,q=.65,out;
+  do{const s=Math.min(1,max/Math.max(bmp.width,bmp.height));
+    const c=document.createElement("canvas");c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);
+    c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);out=c.toDataURL("image/jpeg",q);max-=200;q-=.05;
+  }while(out.length>700000&&max>300);
+  return out;
+}
+async function subirFotos(files){
+  const m=$("#fotoMsg");if(!files.length)return;
+  for(let i=0;i<files.length;i++){
+    msg(m,`Subiendo foto ${i+1} de ${files.length}…`);
+    try{const data=await comprimir(files[i]);const ref=await state.db.collection("fotos").add({data,creado:new Date().toISOString()});
+      state.fotoCache[ref.id]=data;state.fotos.push({id:ref.id});renderFotos()}
+    catch(e){msg(m,"No se pudo subir una foto: "+(e.message||e),"err");return}
+  }
+  msg(m,files.length>1?`${files.length} fotos agregadas.`:"Foto agregada.","ok");
+}
+
+/* ---------- Firma ---------- */
+const sig=$("#sig"),sctx=sig.getContext("2d");let drawing=false,last=null;
+function sizeSig(){
+  const r=sig.getBoundingClientRect();if(!r.width)return;
+  const dpr=window.devicePixelRatio||1,w=Math.round(r.width*dpr),h=Math.round(r.height*dpr);
+  if(sig.width===w&&sig.height===h)return;
+  const keep=state.sigDirty?sig.toDataURL():state.firma;
+  sig.width=w;sig.height=h;sctx.setTransform(dpr,0,0,dpr,0,0);
+  sctx.lineWidth=2.4;sctx.lineCap="round";sctx.lineJoin="round";sctx.strokeStyle="#1b1b3a";
+  if(keep){const im=new Image();im.onload=()=>sctx.drawImage(im,0,0,r.width,r.height);im.src=keep}
+}
+window.addEventListener("resize",sizeSig);
+const sp=e=>{const r=sig.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+sig.addEventListener("pointerdown",e=>{sizeSig();drawing=true;last=sp(e);sig.setPointerCapture(e.pointerId);$("#sigph").hidden=true});
+sig.addEventListener("pointermove",e=>{if(!drawing)return;const p=sp(e);sctx.beginPath();sctx.moveTo(last.x,last.y);sctx.lineTo(p.x,p.y);sctx.stroke();last=p;state.sigDirty=true});
+["pointerup","pointercancel","pointerleave"].forEach(t=>sig.addEventListener(t,()=>drawing=false));
+function clearSig(){sctx.save();sctx.setTransform(1,0,0,1,0,0);sctx.clearRect(0,0,sig.width,sig.height);sctx.restore();state.sigDirty=false;state.firma=null;$("#sigph").hidden=false}
+$("#sigClear").onclick=clearSig;
+function firmaExport(){
+  if(!state.sigDirty)return state.firma;
+  const c=document.createElement("canvas");c.width=600;c.height=200;const x=c.getContext("2d");
+  x.fillStyle="#fff";x.fillRect(0,0,600,200);x.drawImage(sig,0,0,600,200);return c.toDataURL("image/jpeg",.8);
+}
+
+/* ---------- Autocompletar por placa ---------- */
+$("#vPlaca").addEventListener("blur",()=>{
+  const p=normPlaca($("#vPlaca").value);$("#vPlaca").value=p;if(!p||state.editId){msg($("#placaMsg"),"");return}
+  const prev=state.ordenes.filter(o=>normPlaca(o.vehiculo?.placa)===p).sort((a,b)=>(b.ingreso||"").localeCompare(a.ingreso||""));
+  if(!prev.length){msg($("#placaMsg"),"Vehículo nuevo en el taller.");return}
+  const o=prev[0],v=o.vehiculo||{},c=o.cliente||{};
+  const set=(id,val)=>{if(!$(id).value&&val!=null)$(id).value=val};
+  set("#vMarca",v.marca);set("#vModelo",v.modelo);set("#vAnio",v.anio);set("#vColor",v.color);set("#vVin",v.vin);
+  set("#cNombre",c.nombre);set("#cTel",c.tel);set("#cCorreo",c.correo);set("#cDoc",c.doc);
+  const activa=prev.find(x=>x.estado!=="Entregado");
+  msg($("#placaMsg"),activa?`Ojo: esta placa ya tiene la orden ${numTxt(activa.numero)} abierta (${activa.estado}).`
+    :`Cliente conocido: ${prev.length} visita${prev.length>1?"s":""}, la última el ${fFecha(o.ingreso)} con ${km(v.km)||"—"} km. Datos cargados.`,activa?"err":"ok");
+});
+
+/* ---------- Formulario ---------- */
+function leerForm(){
+  const inv={};$$("[data-inv]").forEach(c=>inv[INV[+c.dataset.inv]]=c.checked);
+  return{ingreso:$("#fIngreso").value,prometida:$("#fPrometida").value,recibidoPor:$("#fRecibe").value.trim(),
+    vehiculo:{placa:normPlaca($("#vPlaca").value),marca:$("#vMarca").value.trim(),modelo:$("#vModelo").value.trim(),anio:$("#vAnio").value,
+      color:$("#vColor").value.trim(),vin:$("#vVin").value.trim(),km:$("#vKm").value===""?null:+$("#vKm").value},
+    combustible:state.comb,
+    cliente:{nombre:$("#cNombre").value.trim(),tel:$("#cTel").value.trim(),correo:$("#cCorreo").value.trim(),doc:$("#cDoc").value.trim(),entrega:$("#cEntrega").value.trim()},
+    motivo:$("#fMotivo").value.trim(),testigos:$("#fTestigos").value.trim(),objetos:$("#fObjetos").value.trim(),
+    inventario:inv,danos:state.danos.map(d=>({...d})),fotos:state.fotos.map(f=>({id:f.id})),observaciones:$("#fObs").value.trim(),firma:firmaExport()};
+}
+function limpiarForm(){
+  state.editId=null;$("#formTitle").textContent="Nueva orden de recepción";$("#btnCancelar").hidden=true;$("#btnGuardar").textContent="Guardar orden";
+  ["#fPrometida","#vPlaca","#vMarca","#vModelo","#vAnio","#vColor","#vVin","#vKm","#cNombre","#cTel","#cCorreo","#cDoc","#cEntrega","#fMotivo","#fTestigos","#fObjetos","#fObs"].forEach(s=>$(s).value="");
+  $("#fIngreso").value=nowLocal();$$("[data-inv]").forEach(c=>c.checked=false);setComb(2);
+  state.danos=[];state.fotos=[];renderCar();renderFotos();clearSig();msg($("#placaMsg"),"");
+  try{$("#fRecibe").value=localStorage.getItem("rv_recibe")||""}catch(e){}
+  $("#numPill").textContent=numTxt(nextNum());
+}
+function cargarForm(o){
+  state.editId=o.id;showTab("recibir");window.scrollTo(0,0);
+  $("#formTitle").textContent="Editar orden "+numTxt(o.numero);$("#numPill").textContent=numTxt(o.numero);$("#btnCancelar").hidden=false;$("#btnGuardar").textContent="Guardar cambios";
+  const v=o.vehiculo||{},c=o.cliente||{};
+  const vals={"#fIngreso":o.ingreso,"#fPrometida":o.prometida,"#fRecibe":o.recibidoPor,"#vPlaca":v.placa,"#vMarca":v.marca,"#vModelo":v.modelo,"#vAnio":v.anio,"#vColor":v.color,"#vVin":v.vin,"#vKm":v.km,
+    "#cNombre":c.nombre,"#cTel":c.tel,"#cCorreo":c.correo,"#cDoc":c.doc,"#cEntrega":c.entrega,"#fMotivo":o.motivo,"#fTestigos":o.testigos,"#fObjetos":o.objetos,"#fObs":o.observaciones};
+  Object.entries(vals).forEach(([k,val])=>$(k).value=val??"");
+  setComb(o.combustible??2);$$("[data-inv]").forEach(ch=>ch.checked=!!(o.inventario||{})[INV[+ch.dataset.inv]]);
+  state.danos=(o.danos||[]).map(d=>({...d}));state.fotos=(o.fotos||[]).map(f=>({...f}));renderCar();renderFotos();
+  clearSig();state.firma=o.firma||null;if(state.firma){$("#sigph").hidden=true;sig.width=0;requestAnimationFrame(sizeSig)}
+  msg($("#placaMsg"),"");msg($("#formMsg"),"");
+}
+$("#btnCancelar").onclick=()=>{limpiarForm();msg($("#formMsg"),"")};
+async function guardar(conPdf){
+  const m=$("#formMsg");
+  if(!state.db)return msg(m,"No hay conexión con la base de datos. Revisa tu internet e inicia sesión.","err");
+  const d=leerForm();
+  if(!d.vehiculo.placa)return msg(m,"Escribe la placa del vehículo.","err");
+  if(!d.cliente.nombre)return msg(m,"Escribe el nombre del cliente.","err");
+  if(!d.motivo)return msg(m,"Escribe el motivo de ingreso o la falla reportada.","err");
+  if(!d.ingreso)d.ingreso=nowLocal();
+  $("#btnGuardar").disabled=$("#btnGuardarPdf").disabled=true;
+  try{
+    let orden;
+    if(state.editId){
+      await state.db.doc("ordenes/"+state.editId).update({...d,editado:new Date().toISOString()});
+      orden={...state.ordenes.find(o=>o.id===state.editId),...d};msg(m,`Orden ${numTxt(orden.numero)} actualizada.`,"ok");
+    }else{
+      const uid=state.user?state.user.email||state.user.uid:null;
+      const numero=nextNum(),ts=new Date().toISOString();
+      orden={...d,numero,estado:"Recibido",historial:[{estado:"Recibido",fecha:ts}],creado:ts,creadoPor:uid};
+      const ref=await state.db.collection("ordenes").add(orden);orden.id=ref&&ref.id;
+      msg(m,`Orden ${numTxt(numero)} guardada: ${d.vehiculo.placa}.`,"ok");
+    }
+    try{localStorage.setItem("rv_recibe",d.recibidoPor)}catch(e){}
+    limpiarForm();
+    if(conPdf)await pdfOrden(orden,m);
+  }catch(e){msg(m,e&&/permission/i.test(e.code||"")?"Tu usuario no tiene permiso para guardar. Revisa las reglas de Firestore.":"No se pudo guardar: "+(e&&e.message||e),"err")}
+  finally{$("#btnGuardar").disabled=$("#btnGuardarPdf").disabled=false}
+}
+$("#btnGuardar").onclick=()=>guardar(false);
+$("#btnGuardarPdf").onclick=()=>guardar(true);
+
+/* ---------- Tablero en taller ---------- */
+function waLink(o,texto){
+  let t=String(o.cliente?.tel||"").replace(/\D/g,"");if(!t)return"";if(t.length===8)t="503"+t;
+  return `https://wa.me/${t}?text=${encodeURIComponent(texto)}`;
+}
+function renderTaller(){
+  const q=$("#qTaller").value.trim().toUpperCase();
+  const act=state.ordenes.filter(o=>o.estado!=="Entregado").sort((a,b)=>(a.ingreso||"").localeCompare(b.ingreso||""));
+  $("#cntTaller").textContent=act.length?act.length:"";
+  const h=hoy();
+  $("#tEn").textContent=act.length;$("#tListos").textContent=act.filter(o=>o.estado==="Listo para entregar").length;
+  $("#tAtraso").textContent=act.filter(o=>o.prometida&&o.prometida<h&&o.estado!=="Listo para entregar").length;
+  $("#tHoy").textContent=state.ordenes.filter(o=>(o.ingreso||"").slice(0,10)===h).length;
+  const vis=act.filter(o=>!q||normPlaca(o.vehiculo?.placa).includes(normPlaca(q))||(o.cliente?.nombre||"").toUpperCase().includes(q));
+  $("#cards").innerHTML=vis.length?vis.map(o=>{
+    const dias=diasEntre(o.ingreso||h,h),late=o.prometida&&o.prometida<h&&o.estado!=="Listo para entregar";
+    const listo=o.estado==="Listo para entregar";
+    const wa=waLink(o,listo?`Buen día ${o.cliente?.nombre||""}, le saludamos de ${state.taller.nombre}. Su vehículo ${vehTxt(o)} placa ${o.vehiculo?.placa} ya está listo para retirar.`
+      :`Buen día ${o.cliente?.nombre||""}, le saludamos de ${state.taller.nombre} sobre su vehículo placa ${o.vehiculo?.placa}.`);
+    const ent=state.entregaId===o.id?`<div class="entrega"><input id="entNombre" placeholder="¿Quién retira?" value="${esc(o.cliente?.nombre||"")}"><button class="btn small primary" data-entok="${o.id}">Confirmar entrega</button><button class="btn small" data-entno>Cancelar</button></div>`:"";
+    return `<article class="card" data-estado="${esc(o.estado)}">
+      <div class="row"><span class="plate">${esc(o.vehiculo?.placa)}</span><span class="code">${numTxt(o.numero)}</span></div>
+      <div><b>${esc(vehTxt(o)||"Vehículo")}</b>${o.vehiculo?.color?` · ${esc(o.vehiculo.color)}`:""}<div class="meta">${esc(o.cliente?.nombre)}${o.cliente?.tel?` · ${esc(o.cliente.tel)}`:""}</div></div>
+      <div class="motivo">${esc(o.motivo)}</div>
+      <div class="row"><span class="pill">${dias===0?"Ingresó hoy":dias===1?"1 día en taller":dias+" días en taller"}</span>
+        ${o.prometida?`<span class="pill ${late?"late":listo?"ok":""}">Entrega: ${fFecha(o.prometida)}${late?" · atrasado":""}</span>`:""}</div>
+      <label>Estado<select data-estado-sel="${o.id}">${ESTADOS.filter(e=>e!=="Entregado").map(e=>`<option ${e===o.estado?"selected":""}>${e}</option>`).join("")}</select></label>
+      <div class="actions">
+        <button class="btn small" data-edit="${o.id}">Abrir</button>
+        <button class="btn small" data-pdf="${o.id}">PDF</button>
+        ${wa?`<a class="btn small" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""}
+        <button class="btn small primary" data-ent="${o.id}">Entregar</button>
+      </div>${ent}</article>`}).join("")
+    :`<div class="empty">${act.length?"Ningún vehículo coincide con la búsqueda.":"No hay vehículos en el taller. Los que recibas aparecerán aquí."}</div>`;
+}
+$("#qTaller").addEventListener("input",renderTaller);
+$("#cards").addEventListener("change",async e=>{
+  const id=e.target.dataset.estadoSel;if(!id)return;const o=state.ordenes.find(x=>x.id===id);if(!o)return;
+  try{await state.db.doc("ordenes/"+id).update({estado:e.target.value,historial:[...(o.historial||[]),{estado:e.target.value,fecha:new Date().toISOString()}]})}
+  catch(err){msg($("#tallerMsg"),"No se pudo cambiar el estado: "+(err.message||err),"err")}
+});
+
+/* ---------- Historial ---------- */
+$("#qEstado").innerHTML=`<option value="">Todos</option>`+ESTADOS.map(e=>`<option>${e}</option>`).join("");
+function histFiltrado(){
+  const q=$("#qTexto").value.trim().toUpperCase(),d=$("#qDesde").value,h=$("#qHasta").value,es=$("#qEstado").value;
+  return state.ordenes.filter(o=>{const f=(o.ingreso||"").slice(0,10);
+    const txt=[o.vehiculo?.placa,o.cliente?.nombre,vehTxt(o),numTxt(o.numero)].join(" ").toUpperCase();
+    return(!q||txt.includes(q)||normPlaca(o.vehiculo?.placa).includes(normPlaca(q)))&&(!d||f>=d)&&(!h||f<=h)&&(!es||o.estado===es)})
+    .sort((a,b)=>(b.numero||0)-(a.numero||0));
+}
+function renderHist(){
+  const rs=histFiltrado();$("#histPill").textContent=rs.length+(rs.length===1?" orden":" órdenes");
+  $("#tbHist").innerHTML=rs.length?rs.map(o=>{
+    const del=state.confirmDel===o.id?`<span class="confirm">¿Eliminar? <button class="btn small danger" data-delok="${o.id}">Sí</button><button class="btn small" data-delno>No</button></span>`
+      :`<button class="btn small" data-edit="${o.id}">Abrir</button> <button class="btn small" data-pdf="${o.id}">PDF</button> <button class="btn small danger" data-del="${o.id}">Eliminar</button>`;
+    return `<tr><td><span class="code">${numTxt(o.numero)}</span></td><td class="num">${fFechaHora(o.ingreso)}</td><td class="num"><b>${esc(o.vehiculo?.placa)}</b></td><td>${esc(vehTxt(o))}</td>
+      <td>${esc(o.cliente?.nombre)}<div class="status">${esc(o.cliente?.tel||"")}</div></td><td class="num">${km(o.vehiculo?.km)}</td><td>${esc(o.estado)}</td>
+      <td>${o.entrega?`${fFechaHora(o.entrega.fecha)}<div class="status">${esc(o.entrega.a||"")}</div>`:"—"}</td><td style="white-space:nowrap">${del}</td></tr>`}).join("")
+    :`<tr><td colspan="9" class="empty">No hay órdenes con estos filtros.</td></tr>`;
+}
+["#qTexto","#qDesde","#qHasta","#qEstado"].forEach(s=>$(s).addEventListener("input",renderHist));
+
+/* ---------- Clicks comunes ---------- */
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("button");if(!b)return;const d=b.dataset;
+  const find=id=>state.ordenes.find(o=>o.id===id);
+  if(d.edit){const o=find(d.edit);if(o)cargarForm(o)}
+  if(d.pdf){const o=find(d.pdf);if(o)pdfOrden(o,b.closest("[data-view]")?.dataset.view==="historial"?$("#histMsg"):$("#tallerMsg"))}
+  if(d.ent){state.entregaId=d.ent;renderTaller();setTimeout(()=>$("#entNombre")?.focus(),0)}
+  if(b.hasAttribute("data-entno")){state.entregaId=null;renderTaller()}
+  if(d.entok){const o=find(d.entok);const a=($("#entNombre")?.value||"").trim();state.entregaId=null;
+    try{const ts=nowLocal();await state.db.doc("ordenes/"+d.entok).update({estado:"Entregado",entrega:{fecha:ts,a},historial:[...(o.historial||[]),{estado:"Entregado",fecha:new Date().toISOString()}]});
+      msg($("#tallerMsg"),`${o.vehiculo?.placa} entregado${a?" a "+a:""}. Queda en el historial.`,"ok")}
+    catch(err){msg($("#tallerMsg"),"No se pudo registrar la entrega: "+(err.message||err),"err");renderTaller()}}
+  if(d.del){state.confirmDel=d.del;renderHist()}
+  if(b.hasAttribute("data-delno")){state.confirmDel=null;renderHist()}
+  if(d.delok){state.confirmDel=null;const o=find(d.delok);try{await state.db.doc("ordenes/"+d.delok).delete();(o?.fotos||[]).forEach(f=>state.db.doc("fotos/"+f.id).delete().catch(()=>{}))}catch(err){msg($("#histMsg"),"No se pudo eliminar: "+(err.message||err),"err")}}
+});
+
+/* ---------- Ajustes ---------- */
+function renderAjustes(){const t=state.taller;
+  [["#aNombre","nombre"],["#aTel","tel"],["#aCorreo","correo"],["#aNrc","nrc"],["#aDir","dir"],["#aCond","cond"]].forEach(([s,k])=>{if(document.activeElement!==$(s))$(s).value=t[k]||""});
+  $("#tallerTop").textContent=t.nombre||"Mi taller";}
+$("#btnAjustes").onclick=async()=>{
+  const m=$("#ajMsg");if(!state.db)return msg(m,"Sin conexión.","err");
+  const t={nombre:$("#aNombre").value.trim(),tel:$("#aTel").value.trim(),correo:$("#aCorreo").value.trim(),nrc:$("#aNrc").value.trim(),dir:$("#aDir").value.trim(),cond:$("#aCond").value.trim()};
+  try{await state.db.doc("config/taller").set(t);msg(m,"Datos del taller guardados.","ok")}catch(e){msg(m,"No se pudo guardar: "+(e.message||e),"err")}
+};
+
+/* ---------- Exportar ---------- */
+async function guardarArchivo(filename,data,m){
+  try{const blob=data instanceof Blob?data:new Blob([data],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);msg(m,`${filename} listo.`,"ok")}
+  catch(e){msg(m,"No se pudo descargar: "+(e.message||e),"err")}
+}
+$("#btnExcel").onclick=()=>{
+  const m=$("#histMsg");if(!window.XLSX)return msg(m,"No cargó el módulo de Excel. Recarga la página.","err");
+  const filas=histFiltrado().slice().reverse().map(o=>({"N° orden":numTxt(o.numero),"Ingreso":fFechaHora(o.ingreso),"Placa":o.vehiculo?.placa||"","Marca":o.vehiculo?.marca||"","Modelo":o.vehiculo?.modelo||"","Año":o.vehiculo?.anio||"",
+    "Color":o.vehiculo?.color||"","Km":o.vehiculo?.km??"","Combustible":COMB[o.combustible??2],"Cliente":o.cliente?.nombre||"","Teléfono":o.cliente?.tel||"","Correo":o.cliente?.correo||"",
+    "Motivo":o.motivo||"","Daños marcados":(o.danos||[]).length,"Estado":o.estado||"","Entrega prometida":fFecha(o.prometida),"Entregado":o.entrega?fFechaHora(o.entrega.fecha):"","Retiró":o.entrega?.a||"","Recibido por":o.recibidoPor||""}));
+  const wb=XLSX.utils.book_new(),s=XLSX.utils.json_to_sheet(filas);
+  s["!cols"]=[10,16,10,12,12,6,10,9,11,26,12,24,40,8,18,12,16,20,18].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,s,"Órdenes");
+  guardarArchivo(`recepcion-vehiculos_${hoy()}.xlsx`,XLSX.write(wb,{type:"array",bookType:"xlsx"}),m);
+};
+
+/* ---------- PDF de la orden ---------- */
+function svgToPng(danos){
+  return new Promise(res=>{
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 330" width="1200" height="660"><rect width="600" height="330" fill="#fff"/>${CAR_SVG}${marksSvg(danos)}</svg>`;
+    const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=1200;c.height=660;c.getContext("2d").drawImage(im,0,0,1200,660);res(c.toDataURL("image/png"))};
+    im.onerror=()=>res(null);im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  });
+}
+async function fotoData(f){
+  try{const d=await fotoUrl(f.id);if(!d)return null;
+    return await new Promise((ok,ko)=>{const im=new Image();im.onload=()=>ok({d,w:im.width,h:im.height});im.onerror=ko;im.src=d})}
+  catch(e){return null}
+}
+async function pdfOrden(o,m){
+  m=m||$("#formMsg");
+  if(!window.jspdf)return msg(m,"No cargó el módulo de PDF. Recarga la página.","err");
+  msg(m,"Generando PDF…");
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"letter"});
+  const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),L=14,R=W-14,CW=R-L;
+  const RED=[130,36,42],BG=[245,244,243],LN=[217,210,210],TX=[40,34,34],t=state.taller,v=o.vehiculo||{},c=o.cliente||{};
+  let y=14;
+  const ensure=h=>{if(y+h>H-16){doc.addPage();y=16}};
+  const band=txt=>{ensure(12);doc.setFillColor(...RED);doc.rect(L,y,CW,6.5,"F");doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.text(txt,L+2.5,y+4.5);doc.setTextColor(...TX);y+=8.5};
+  // Encabezado
+  doc.setTextColor(...RED);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text(t.nombre||"",L,y+4);
+  doc.setTextColor(...TX);doc.setFont("helvetica","normal");doc.setFontSize(7.6);
+  const dirL=doc.splitTextToSize(t.dir||"",CW-62);doc.text(dirL,L,y+9.5);let hy=y+9.5+dirL.length*3.3;
+  doc.text([`Tel: ${t.tel||""}   |   ${t.correo||""}`,t.nrc?`NRC: ${t.nrc}`:""].filter(Boolean),L,hy);
+  doc.setDrawColor(...RED);doc.setLineWidth(.6);doc.roundedRect(R-56,y-2,56,24,2,2);
+  doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(...RED);doc.text("ORDEN DE RECEPCIÓN",R-28,y+4,{align:"center"});
+  doc.setFontSize(15);doc.setTextColor(...TX);doc.text(numTxt(o.numero),R-28,y+12,{align:"center"});
+  doc.setFont("helvetica","normal");doc.setFontSize(7.6);doc.text(`Ingreso: ${fFechaHora(o.ingreso)}`,R-28,y+18,{align:"center"});
+  y=Math.max(hy+8,y+26);doc.setDrawColor(...RED);doc.setLineWidth(.8);doc.line(L,y-3,R,y-3);
+  // Cliente y vehículo
+  band("DATOS DEL CLIENTE Y DEL VEHÍCULO");
+  const kv=(a,b)=>[{content:a,styles:{fontStyle:"bold",textColor:[110,95,95]}},b||"—"];
+  doc.autoTable({startY:y,margin:{left:L,right:14},theme:"grid",styles:{fontSize:8.2,cellPadding:1.7,lineColor:LN,lineWidth:.2,textColor:TX},
+    columnStyles:{0:{cellWidth:28,fillColor:BG},2:{cellWidth:28,fillColor:BG}},
+    body:[[...kv("Cliente",c.nombre),...kv("Placa",v.placa)],[...kv("Teléfono",c.tel),...kv("Vehículo",vehTxt(o))],
+      [...kv("Correo",c.correo),...kv("Color",v.color)],[...kv("DUI / NIT",c.doc),...kv("VIN / chasis",v.vin)],
+      [...kv("Entrega el vehículo",c.entrega||c.nombre),...kv("Kilometraje",v.km!=null?km(v.km)+" km":"")],
+      [...kv("Entrega prometida",fFecha(o.prometida)),...kv("Combustible",COMB[o.combustible??2])]]});
+  y=doc.lastAutoTable.finalY+4;
+  // Trabajo
+  band("TRABAJO SOLICITADO / FALLA REPORTADA");
+  doc.setFontSize(8.6);const mot=doc.splitTextToSize(o.motivo||"—",CW-2);ensure(mot.length*3.8+2);doc.text(mot,L+1,y+2.5);y+=mot.length*3.8+1.5;
+  doc.setFontSize(8);
+  if(o.testigos){const tl=doc.splitTextToSize("Testigos encendidos en tablero: "+o.testigos,CW-2);doc.text(tl,L+1,y+2.5);y+=tl.length*3.6}
+  y+=3;
+  // Inventario
+  band("INVENTARIO DEL VEHÍCULO");
+  const inv=o.inventario||{},items=INV.map(i=>[i,inv[i]?"Sí":"No"]),rows=[];
+  for(let i=0;i<items.length;i+=3)rows.push([0,1,2].flatMap(k=>items[i+k]||["",""]));
+  doc.autoTable({startY:y,margin:{left:L,right:14},theme:"grid",body:rows,styles:{fontSize:7.8,cellPadding:1.4,lineColor:LN,lineWidth:.2,textColor:TX},
+    columnStyles:{1:{cellWidth:10,halign:"center",fontStyle:"bold"},3:{cellWidth:10,halign:"center",fontStyle:"bold"},5:{cellWidth:10,halign:"center",fontStyle:"bold"}},
+    didParseCell:h=>{if(h.section==="body"&&h.column.index%2===1){h.cell.styles.textColor=h.cell.raw==="Sí"?[47,125,79]:[178,58,44]}}});
+  y=doc.lastAutoTable.finalY+3;
+  if(o.objetos){doc.setFontSize(8);doc.setFont("helvetica","bold");doc.text("Objetos de valor declarados: ",L+1,y+2.5);const w=doc.getTextWidth("Objetos de valor declarados: ");doc.setFont("helvetica","normal");
+    const ol=doc.splitTextToSize(o.objetos,CW-w-2);doc.text(ol,L+1+w,y+2.5);y+=ol.length*3.6+1}
+  y+=2;
+  // Estado exterior
+  band("ESTADO EXTERIOR");
+  const img=await svgToPng(o.danos||[]);const iw=98,ih=iw*330/600;ensure(ih+2);
+  if(img)doc.addImage(img,"PNG",L,y,iw,ih);
+  let ly=y+3;const lx=L+iw+5;doc.setFontSize(7.6);
+  doc.setFont("helvetica","bold");doc.text("Simbología: "+Object.entries(DANOS).map(([k,v])=>`${k} = ${v}`).join(" · "),lx,ly,{maxWidth:R-lx});ly+=8;
+  doc.setFont("helvetica","normal");
+  const dn=o.danos||[];
+  if(!dn.length){doc.text("Sin daños marcados al ingreso.",lx,ly)}
+  dn.forEach((d,i)=>{if(ly>y+ih)return;const tl=doc.splitTextToSize(`${i+1}${d.t}. ${DANOS[d.t]}${d.n?" — "+d.n:""}`,R-lx);doc.text(tl,lx,ly);ly+=tl.length*3.4+.6});
+  if(dn.length&&ly>y+ih){doc.text("…ver diagrama",lx,y+ih)}
+  y+=ih+3;
+  if(o.observaciones){doc.setFontSize(8);doc.setFont("helvetica","bold");doc.text("Observaciones:",L+1,y+2.5);doc.setFont("helvetica","normal");
+    const ob=doc.splitTextToSize(o.observaciones,CW-2);ensure(ob.length*3.6+6);doc.text(ob,L+1,y+6.2);y+=ob.length*3.6+6}
+  y+=2;
+  // Condiciones
+  const conds=(t.cond||"").split("\n").map(s=>s.trim()).filter(Boolean);
+  if(conds.length){band("CONDICIONES");doc.setFontSize(7.2);doc.setTextColor(90,80,80);
+    conds.forEach((s,i)=>{const tl=doc.splitTextToSize(`${i+1}. ${s}`,CW-2);ensure(tl.length*3.1+1);doc.text(tl,L+1,y+2);y+=tl.length*3.1+.6});doc.setTextColor(...TX);y+=2}
+  // Firmas
+  ensure(34);y+=4;const fw=(CW-20)/2;
+  if(o.firma){try{doc.addImage(o.firma,"JPEG",L+fw/2-28,y,56,18.7)}catch(e){}}
+  y+=20;doc.setDrawColor(60);doc.setLineWidth(.3);doc.line(L,y,L+fw,y);doc.line(R-fw,y,R,y);
+  doc.setFontSize(8);doc.setFont("helvetica","bold");doc.text("Firma del cliente",L+fw/2,y+4,{align:"center"});doc.text("Recibido por (taller)",R-fw/2,y+4,{align:"center"});
+  doc.setFont("helvetica","normal");doc.text(c.entrega||c.nombre||"",L+fw/2,y+8,{align:"center"});doc.text(o.recibidoPor||"",R-fw/2,y+8,{align:"center"});
+  doc.setFontSize(6.8);doc.setTextColor(110);doc.text("Con su firma, el cliente acepta el inventario, el estado del vehículo descrito y las condiciones de esta orden.",W/2,y+13,{align:"center"});doc.setTextColor(...TX);
+  y+=16;
+  if(o.entrega){ensure(10);doc.setFontSize(8);doc.setFont("helvetica","bold");doc.text(`Entregado el ${fFechaHora(o.entrega.fecha)}${o.entrega.a?" a "+o.entrega.a:""}.`,L,y+3);y+=6}
+  // Fotos
+  const fotos=o.fotos||[];
+  if(fotos.length){
+    doc.addPage();y=16;band(`FOTOS DEL VEHÍCULO AL INGRESO — ${numTxt(o.numero)} · ${v.placa||""}`);
+    const cols=2,gap=5,cw=(CW-gap)/cols,ch=cw*.72;let col=0;
+    for(const f of fotos){const fd=await fotoData(f);if(!fd)continue;
+      if(col===0)ensure(ch+2);
+      const x=L+col*(cw+gap),s=Math.min(cw/fd.w,ch/fd.h),w=fd.w*s,h=fd.h*s;
+      doc.setFillColor(...BG);doc.rect(x,y,cw,ch,"F");doc.addImage(fd.d,"JPEG",x+(cw-w)/2,y+(ch-h)/2,w,h);
+      col++;if(col===cols){col=0;y+=ch+gap}}
+  }
+  const n=doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(7);doc.setTextColor(140);doc.text(`${t.nombre||""} · ${numTxt(o.numero)} · Página ${i} de ${n}`,R,H-8,{align:"right"})}
+  await guardarArchivo(`Orden ${numTxt(o.numero)} ${v.placa||""}.pdf`,doc.output("blob"),m);
+}
+
+/* ---------- Render general ---------- */
+function render(){
+  renderTaller();renderHist();
+  $("#dlRecibe").innerHTML=[...new Set(state.ordenes.map(o=>o.recibidoPor).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join("");
+  $("#dlClientes").innerHTML=[...new Set(state.ordenes.map(o=>o.cliente?.nombre).filter(Boolean))].sort().map(x=>`<option value="${esc(x)}">`).join("");
+  if(!state.editId)$("#numPill").textContent=numTxt(nextNum());
+}
+
+/* ---------- Arranque ---------- */
+setDano("R");renderCar();limpiarForm();renderAjustes();render();
+try{showTab(localStorage.getItem("rv_tab")||"recibir")}catch(e){showTab("recibir")}
+
+(function iniciarFirebase(){
+  const cfg=window.FIREBASE_CONFIG;
+  if(!window.firebase){$("#status").textContent="No cargó Firebase. Revisa tu conexión a internet y recarga la página.";return}
+  if(!cfg||!cfg.apiKey||/PEGA/.test(cfg.apiKey)){$("#status").textContent="Falta configurar Firebase: pega tus datos en el archivo firebase-config.js.";return}
+  firebase.initializeApp(cfg);
+  const auth=firebase.auth(),fs=firebase.firestore();
+  try{fs.enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(e){}
+  $("#loginForm").addEventListener("submit",async e=>{
+    e.preventDefault();const m=$("#lMsg");msg(m,"Entrando…");$("#lBtn").disabled=true;
+    try{await auth.signInWithEmailAndPassword($("#lCorreo").value.trim(),$("#lClave").value);msg(m,"")}
+    catch(err){msg(m,/invalid|wrong|not-found|credential/i.test(err.code||"")?"Correo o contraseña incorrectos.":"No se pudo entrar: "+(err.message||err),"err")}
+    finally{$("#lBtn").disabled=false}
+  });
+  $("#btnSalir").onclick=()=>auth.signOut();
+  auth.onAuthStateChanged(u=>{
+    state.unsub.forEach(f=>f());state.unsub=[];
+    state.user=u;$("#login").hidden=!!u;$("#userbox").hidden=!u;$("#userMail").textContent=u?u.email:"";
+    if(!u){state.db=null;state.ordenes=[];render();renderFotos();$("#status").textContent="Inicia sesión para recibir vehículos.";return}
+    state.db=fs;renderFotos();
+    let listo=false;const timer=setTimeout(()=>{if(!listo)$("#status").textContent="Las órdenes tardan en cargar. Revisa tu conexión; la app seguirá intentando."},10000);
+    state.unsub.push(fs.collection("ordenes").onSnapshot({includeMetadataChanges:true},s=>{state.ordenes=s.docs.map(d=>({id:d.id,...d.data()}));
+      if(!listo&&!s.metadata.fromCache){listo=true;clearTimeout(timer);$("#status").textContent="Órdenes al día. Todo lo que guardes lo ve el equipo del taller."}render()},
+      e=>{clearTimeout(timer);$("#status").textContent="Error al leer las órdenes: "+e.message}));
+    state.unsub.push(fs.doc("config/taller").onSnapshot(s=>{state.taller=s.exists?{...DEF_TALLER,...s.data()}:{...DEF_TALLER};renderAjustes();renderTaller()},()=>{}));
+  });
+})();
+})();
+</script>
+</body></html>
